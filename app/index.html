@@ -1,0 +1,2669 @@
+<!doctype html>
+<!--
+  Mocean: free frame-by-frame animation in your browser.
+  Copyright (C) 2026 Minh Tran
+
+  This program is free software: you can redistribute it and/or modify it under the terms of the
+  GNU Affero General Public License as published by the Free Software Foundation, either version 3
+  of the License, or (at your option) any later version. It is distributed WITHOUT ANY WARRANTY.
+  See the LICENSE file or <https://www.gnu.org/licenses/>. Source code: https://github.com/KopikoCappu/mocean
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Mocean</title>
+<meta name="theme-color" content="#0b0b0c">
+<meta name="description" content="Mocean is a free frame-by-frame animation app that runs in your browser.">
+<meta property="og:title" content="Mocean">
+<meta property="og:description" content="Free frame-by-frame animation in your browser.">
+<meta property="og:url" content="https://mocean-frames.pages.dev/app/">
+<meta property="og:image" content="https://mocean-frames.pages.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<script src="/config.js"></script>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mocean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0c; --panel: #121214; --raise: #1a1a1d; --raise2: #242428;
+    --work: #070708; --line: rgba(255, 255, 255, 0.08);
+    --ink: #ececee; --dim: rgba(236, 236, 238, 0.58);
+    --accent: #6883ba; --on-accent: #0c0e14;
+    --intro: #c9725f; --loop: #6883ba;
+    --bar: linear-gradient(180deg, #161618, #111113);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f4f4f5; --panel: #ffffff; --raise: #f7f7f8; --raise2: #ececee;
+      --work: #e4e4e7; --line: rgba(0, 0, 0, 0.09);
+      --ink: #141416; --dim: rgba(20, 20, 22, 0.6);
+      --accent: #6883ba; --on-accent: #0c0e14; --intro: #c0604c; --loop: #5a74a8;
+      --bar: linear-gradient(180deg, #ffffff, #f8f8f9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b0b0c; --panel: #121214; --raise: #1a1a1d; --raise2: #242428;
+    --work: #070708; --line: rgba(255, 255, 255, 0.08);
+    --ink: #ececee; --dim: rgba(236, 236, 238, 0.58);
+    --accent: #6883ba; --on-accent: #0c0e14;
+    --intro: #c9725f; --loop: #6883ba;
+    --bar: linear-gradient(180deg, #161618, #111113);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; overscroll-behavior: none; }
+  @supports (height: 100dvh) { html, body { height: 100dvh; } }
+  html { touch-action: manipulation; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+  body {
+    -webkit-touch-callout: none;
+    background: var(--bg); color: var(--ink);
+    font: 13px/1.35 "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button {
+    background: var(--raise); border: 1px solid var(--line); border-radius: 8px;
+    min-height: 32px; padding: 0 11px; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  button svg { width: 16px; height: 16px; flex: none; }
+  .icon-btn { width: 32px; padding: 0; }
+  button:hover { background: var(--raise2); }
+  button:disabled { opacity: 0.38; cursor: default; }
+  button.primary { background: linear-gradient(180deg, #7590c6, #6883ba); background-color: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  select, input[type="number"] {
+    background: var(--raise); border: 1px solid var(--line); border-radius: 8px; min-height: 32px; padding: 0 8px;
+  }
+  input[type="number"] { width: 72px; }
+  input[type="range"] { accent-color: var(--accent); width: 92px; }
+  input[type="color"] { width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 7px; background: none; cursor: pointer; }
+  input[type="checkbox"] { accent-color: var(--accent); }
+  label { display: inline-flex; align-items: center; gap: 6px; color: var(--dim); }
+
+  /* top bar */
+  .top { background: var(--bar, var(--panel)); border-bottom: 1px solid var(--line); }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 9px 14px; }
+  .bar.options { padding: 7px 14px; background: transparent; border-top: 1px solid var(--line); min-height: 48px; }
+  #projectsBtn { max-width: 220px; }
+  #projName { overflow: hidden; text-overflow: ellipsis; }
+  .plist { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; max-height: min(60vh, 520px); overflow-y: auto; padding: 2px; }
+  .pcard { border: 1px solid var(--line); border-radius: 10px; background: var(--raise); overflow: hidden; display: flex; flex-direction: column; }
+  .pcard[aria-current="true"] { border-color: var(--accent); }
+  .pcard .pthumb { all: unset; cursor: pointer; display: block; aspect-ratio: 16 / 10; background: #000 center / contain no-repeat; }
+  .pcard .pthumb:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .pcard .pmeta { padding: 8px 10px 4px; }
+  .pcard .pname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pcard .pwhen { color: var(--dim); font-size: 12px; }
+  .pcard .pacts { display: flex; gap: 4px; padding: 6px 8px 8px; flex-wrap: wrap; }
+  .pcard .pacts button { min-height: 28px; padding: 0 8px; font-size: 12px; }
+  #projectsDlg { width: min(760px, 94vw); }
+  #welcomeDlg p { margin: 0 0 10px; line-height: 1.5; }
+  .backup-note { margin: 12px 0 0; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--line); border-left: 3px solid var(--accent); background: var(--raise); }
+  a.brand { text-decoration: none; }
+  .support-btn {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 11px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--raise); color: var(--ink); text-decoration: none; white-space: nowrap;
+  }
+  .support-btn svg { width: 16px; height: 16px; color: #c9725f; }
+  .support-btn:hover { background: var(--raise2); }
+  .support-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .support-note { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+  .support-note a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 2px; }
+  .brand { display: inline-flex; align-items: center; gap: 8px; margin-right: 6px; font-weight: 700; font-size: 16px; letter-spacing: -0.01em; color: var(--ink); }
+  .brand svg { width: 26px; height: 26px; color: var(--accent); }
+  .group { display: inline-flex; align-items: center; gap: 8px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; }
+  .sep { width: 1px; height: 24px; background: var(--line); }
+  .spacer { flex: 1; }
+  .swatches { display: inline-flex; gap: 4px; }
+  .swatches button { width: 22px; height: 22px; min-height: 0; padding: 0; border-radius: 50%; border: 1px solid var(--line); }
+  output { color: var(--ink); min-width: 2.2em; display: inline-block; font-variant-numeric: tabular-nums; }
+  .zoom { display: inline-flex; }
+  .zoom button { border-radius: 0; }
+  .zoom button:first-child { border-radius: 8px 0 0 8px; }
+  .zoom button:last-child { border-radius: 0 8px 8px 0; }
+  #zoomPct { min-width: 58px; font-variant-numeric: tabular-nums; }
+
+  /* main */
+  .main { display: grid; grid-template-columns: 172px minmax(0, 1fr) 256px; min-height: 0; }
+  .frames, .side { background: var(--panel); min-height: 0; display: flex; flex-direction: column; }
+  .frames { border-right: 1px solid var(--line); }
+  .side { border-left: 1px solid var(--line); overflow-y: auto; }
+  .ph { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 12px 6px; }
+  h2, h3 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+  .side h3 { font-size: 12px; color: var(--dim); font-weight: 600; }
+  .ph span { color: var(--dim); font-size: 12px; }
+  .flist { flex: 1; overflow-y: auto; padding: 2px 10px 10px; }
+  .fr {
+    display: block; width: 100%; position: relative; padding: 4px; margin-bottom: 6px;
+    border: 2px solid transparent; border-radius: 9px; background: var(--raise);
+  }
+  .fr canvas, .fr .tph { display: block; width: 100%; height: auto; border-radius: 5px; }
+  .fr .tph { background: var(--work); }
+  .fr.intro { box-shadow: inset 4px 0 0 var(--intro); }
+  .fr.loop { box-shadow: inset 4px 0 0 var(--loop); }
+  .fr[aria-current="true"] { border-color: var(--accent); }
+  .fr.drop { border-color: var(--loop); border-style: dashed; }
+  .fr .num, .fr .hb {
+    position: absolute; top: 7px; font-size: 11px; line-height: 16px; padding: 0 5px;
+    border-radius: 4px; background: rgba(0, 0, 0, 0.55); color: #ececee;
+  }
+  .fr .num { left: 9px; }
+  .fr .hb { right: 7px; }
+  .fctl { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 10px; border-top: 1px solid var(--line); }
+  .fctl .wide { grid-column: span 2; }
+  .hold { grid-column: span 2; display: flex; align-items: center; justify-content: space-between; color: var(--dim); }
+  .hold div { display: inline-flex; align-items: center; gap: 4px; }
+  .hold output { text-align: center; }
+
+  .stage { position: relative; background: var(--work); min-width: 0; min-height: 0; overflow: hidden; }
+  #cv { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+  .selbar {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 5px; padding: 6px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 11px; z-index: 2;
+  }
+  .selbar[hidden] { display: none; }
+  .playtag {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); color: #ececee; padding: 3px 10px; border-radius: 999px; font-size: 12px;
+    font-variant-numeric: tabular-nums; pointer-events: none;
+  }
+  .playtag[hidden] { display: none; }
+
+  .sec { padding: 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .row.between { justify-content: space-between; }
+  .layers { display: flex; flex-direction: column; gap: 4px; }
+  .layer {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 4px; align-items: center;
+    padding: 3px; border-radius: 8px; border: 1px solid transparent;
+  }
+  .layer[aria-current="true"] { background: var(--raise); border-color: var(--accent); }
+  .layer .lname { text-align: left; background: none; border: 0; overflow: hidden; text-overflow: ellipsis; }
+  .layer .ic { padding: 3px 7px; font-size: 12px; }
+  .note { color: var(--dim); font-size: 12px; margin: 0; }
+  .sec-sub { display: flex; flex-direction: column; gap: 8px; padding: 8px; border-radius: 9px; background: var(--raise); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+
+  dialog {
+    background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px; width: min(460px, 92vw);
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.5); }
+  dialog h2 { font-size: 16px; margin-bottom: 12px; }
+  .ex { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: center; margin: 12px 0; }
+  .ex button { justify-self: start; }
+  .ex p { margin: 0; color: var(--dim); }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; }
+  kbd { background: var(--raise); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font: 12px/1.4 inherit; }
+  .toast {
+    position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+    background: var(--raise2); color: var(--ink); border: 1px solid var(--line);
+    padding: 8px 14px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10;
+  }
+  .toast.show { opacity: 1; }
+  .update {
+    position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 11;
+    display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 16px; border-radius: 999px;
+    background: var(--raise2); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .update button { border-radius: 999px; }
+  body.has-update .toast { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+  .hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .only-narrow { display: none; }
+
+  @media (max-width: 980px) {
+    .main { grid-template-columns: 132px minmax(0, 1fr); }
+    .side {
+      position: fixed; right: 0; top: 0; bottom: 0; width: 280px; z-index: 6;
+      padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+      transform: translateX(100%); transition: transform 0.2s;
+    }
+    .side.open { transform: none; box-shadow: -10px 0 30px rgba(0,0,0,0.35); }
+    .only-narrow { display: inline-block; }
+  }
+  @media (max-width: 600px) {
+    .main { grid-template-columns: 96px minmax(0, 1fr); }
+    .fctl { grid-template-columns: minmax(0, 1fr); padding: 8px 6px; }
+    .hold { flex-wrap: wrap; gap: 4px; }
+    .hold button { width: 26px; min-height: 28px; padding: 0; }
+    .bar .sep { display: none; }
+    .fctl button { white-space: normal; line-height: 1.15; padding: 4px 6px; font-size: 12px; }
+    .frames .ph { flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 8px 6px; }
+    .flist { padding: 2px 6px 10px; }
+    .fctl .wide, .hold { grid-column: span 1; }
+    input[type="range"] { width: 70px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .side, .toast { transition: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <a class="brand" href="/" aria-label="Mocean home"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10.5 16a5.5 5.5 0 0 1 11 0M4 19.5c2.6 0 3.4-2 6-2s3.4 2 6 2 3.4-2 6-2 3.4 2 6 2M4 25c2.6 0 3.4-2 6-2s3.4 2 6 2 3.4-2 6-2 3.4 2 6 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Mocean</a>
+    <button type="button" id="projectsBtn" title="Your projects"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4.2l2 2H19a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span id="projName">Untitled</span></button>
+    <div class="seg" role="group" aria-label="Tools">
+    <button type="button" data-tool="brush" title="Brush (B)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20c2.5 0 4-1.3 4-3.4 0-1.3 1-2.3 2.3-2.3h.2L19 5.8a1.7 1.7 0 0 0-2.4-2.4L8.2 11.9v.3A2.3 2.3 0 0 1 6 14.5C4 14.5 4 17 4 20z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>Brush</button>
+    <button type="button" data-tool="erase" title="Eraser (E)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 19.5h11M5 15.2l9.6-9.6a2 2 0 0 1 2.8 0l2 2a2 2 0 0 1 0 2.8l-8 8H8.6L5 15.2zM9.3 10.9l4.8 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Eraser</button>
+    <button type="button" data-tool="lasso" title="Select (L)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 16.5C4.6 15.3 3 13.4 3 11.2 3 7.2 7 4 12 4s9 3.2 9 7.2-4 7.2-9 7.2c-1 0-2-.1-2.9-.4M7 16.5c0 1.6 1 2.5 2.3 2.5 1 0 1.7-.6 1.7-1.5 0-.8-.8-1.5-2-1.5-.8 0-1.4 0-2 .5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0"/></svg>Select</button>
+    <button type="button" data-tool="hand" title="Hand (H, or hold Space)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11m0-5.5V4.5a1.5 1.5 0 0 1 3 0V11m0-5a1.5 1.5 0 0 1 3 0v6m0-3.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-1a7 7 0 0 1-5.6-2.8L4.2 15a1.6 1.6 0 0 1 2.5-2L8 14.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Hand</button>
+  </div>
+    <span class="sep"></span>
+    <div class="group"><button type="button" id="undo" class="icon-btn" aria-label="Undo" title="Undo (Cmd/Ctrl+Z, two-finger tap)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" id="redo" class="icon-btn" aria-label="Redo" title="Redo (Shift+Cmd/Ctrl+Z, three-finger tap)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+    <span class="sep"></span>
+    <div class="group"><button type="button" id="onionBtn" title="Onion skin (O)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.7" opacity=".5"/><circle cx="15" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>Onion skin</button><button type="button" id="gridBtn" title="Grid and guides (G)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Grid</button></div>
+    <span class="spacer"></span>
+    <button type="button" id="play" class="primary" title="Play (Enter)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg><span id="playLabel">Play</span></button>
+    <button type="button" id="exportBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Export</button>
+    <button type="button" id="panelsBtn" class="only-narrow" aria-controls="side" aria-expanded="false">Panels</button>
+    <button type="button" id="feedbackBtn" hidden title="Tell me what to fix or add"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14A1.5 1.5 0 0 1 20.5 7v8a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>Feedback</button>
+    <a class="support-btn" id="supportBtn" hidden target="_blank" rel="noopener" title="Mocean is free. Support it to keep it that way."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.6-7.5 10-7.5 10z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Support</a>
+    <button type="button" id="helpBtn" aria-label="Keyboard shortcuts">?</button>
+  </div>
+  <div class="bar options" aria-label="Tool options">
+    <select id="brushType" aria-label="Brush type">
+    <option value="pen">Pen</option>
+    <option value="marker">Marker</option>
+    <option value="pencil">Pencil</option>
+  </select>
+    <label>Size <input id="size" type="range" min="1" max="200" step="0.5"> <output id="sizeV"></output></label>
+    <label id="smoothWrap" title="Steadies the line while you draw, like StreamLine">Smoothing <input id="smooth" type="range" min="0" max="1" step="0.05"></label>
+    <label id="cleanWrap" title="Irons out wobbles when you lift the pen">Cleanup <input id="cleanup" type="range" min="0" max="1" step="0.05"></label>
+    <label id="eraseWrap" hidden><input id="eraseWhole" type="checkbox"> Whole strokes</label>
+    <span class="sep"></span>
+    <div class="group"><input id="color" type="color" aria-label="Ink color"><div class="swatches" id="swatches" aria-label="Recent colors"></div></div>
+    <span class="spacer"></span>
+    <div class="zoom">
+    <button type="button" id="zoomOut" aria-label="Zoom out">−</button>
+    <button type="button" id="zoomPct" title="Fit to screen (0)">100%</button>
+    <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+  </div>
+  </div>
+</header>
+
+<div class="main">
+  <aside class="frames" aria-label="Frames">
+    <div class="ph"><h2>Frames</h2><span id="frameCount"></span></div>
+    <div class="flist" id="frameList"></div>
+    <div class="fctl">
+      <button type="button" id="fNew" title="New frame (N)">New</button>
+      <button type="button" id="fDup" title="Duplicate frame (D)">Duplicate</button>
+      <button type="button" id="fUp">Earlier</button>
+      <button type="button" id="fDown">Later</button>
+      <button type="button" id="fDel" class="wide">Delete frame</button>
+      <div class="hold">
+        <span>Hold</span>
+        <div>
+          <button type="button" id="holdMinus" aria-label="Shorter hold">−</button>
+          <output id="holdV">1</output>
+          <button type="button" id="holdPlus" aria-label="Longer hold">+</button>
+        </div>
+      </div>
+      <button type="button" id="fCopyNext" class="wide" title="Copy this layer to the next frame (Shift+N)">Copy layer to next</button>
+      <button type="button" id="loopHere" class="wide">Loop from here</button>
+    </div>
+  </aside>
+
+  <section class="stage" id="stageBox">
+    <canvas id="cv" aria-label="Drawing canvas"></canvas>
+    <div class="selbar" id="selbar" hidden>
+      <button type="button" id="sCopy">Copy</button>
+      <button type="button" id="sCut">Cut</button>
+      <button type="button" id="sPaste">Paste</button>
+      <button type="button" id="sCenter" title="Center on the canvas">Center</button>
+      <button type="button" id="sFlip">Flip</button>
+      <button type="button" id="sDel">Delete</button>
+      <button type="button" id="sDone">Done</button>
+    </div>
+    <div class="playtag" id="playtag" hidden></div>
+  </section>
+
+  <aside class="side" id="side" aria-label="Panels">
+    <div class="sec">
+      <div class="row between"><h3>Layers</h3><button type="button" id="panelsClose" class="only-narrow">Close</button></div>
+      <div class="layers" id="layerList"></div>
+      <div class="row">
+        <button type="button" id="lAdd">Add layer</button>
+        <button type="button" id="lUp">Raise</button>
+        <button type="button" id="lDown">Lower</button>
+        <button type="button" id="lDel">Delete</button>
+      </div>
+      <label>Opacity <input id="lOpacity" type="range" min="0" max="1" step="0.05"></label>
+      <p class="note">Double-click a layer name to rename it.</p>
+    </div>
+
+    <div class="sec">
+      <h3>Onion skin</h3>
+      <div class="row">
+        <label>Before <select id="oBefore"><option>0</option><option>1</option><option>2</option><option>3</option></select></label>
+        <label>After <select id="oAfter"><option>0</option><option>1</option><option>2</option><option>3</option></select></label>
+      </div>
+      <label>Strength <input id="oOpacity" type="range" min="0.1" max="0.9" step="0.05"></label>
+      <p class="note legend"><span><i style="background:#d0715c"></i>Earlier frames</span> &nbsp; <span><i style="background:#6883ba"></i>Later frames</span></p>
+    </div>
+
+    <div class="sec">
+      <h3>Grid and guides</h3>
+      <label><input id="gOn" type="checkbox"> Show grid and guides</label>
+      <div class="row">
+        <label><input id="gLines" type="checkbox"> Grid lines</label>
+        <select id="gSize" aria-label="Grid spacing">
+          <option value="25">25 px</option><option value="50">50 px</option>
+          <option value="100">100 px</option><option value="200">200 px</option>
+        </select>
+      </div>
+      <label><input id="gCenter" type="checkbox"> Center lines</label>
+      <label><input id="gThirds" type="checkbox"> Thirds</label>
+      <label><input id="gSnap" type="checkbox"> Snap when moving a selection</label>
+      <p class="note">Selections snap to the canvas center and edges, plus any grid or thirds lines you can see. Hold Option or Alt while dragging to move freely. Arrow keys nudge a selection, Shift for bigger steps.</p>
+    </div>
+
+    <div class="sec">
+      <h3>Playback</h3>
+      <label>Intro fps <input id="introFps" type="range" min="2" max="30" step="1"> <output id="introFpsV"></output></label>
+      <label>Loop fps <input id="loopFps" type="range" min="2" max="30" step="1"> <output id="loopFpsV"></output></label>
+      <p class="note legend"><span><i style="background:var(--intro)"></i>Plays once</span> &nbsp; <span><i style="background:var(--loop)"></i>Loops</span></p>
+      <p class="note">Select a frame and press "Loop from here". Frames before it play once, then the rest repeat.</p>
+    </div>
+
+    <div class="sec">
+      <h3>Background</h3>
+      <div class="row">
+        <label>Color <input id="bgColor" type="color"></label>
+        <label><input id="bgTransparent" type="checkbox"> Transparent</label>
+      </div>
+      <div class="row">
+        <button type="button" id="bgImgBtn">Image, GIF or video</button>
+        <button type="button" id="bgImgRemove">Remove</button>
+        <input id="bgImgFile" class="hidden-input" type="file" accept="image/*,video/*">
+      </div>
+      <div id="mediaCtl" class="sec-sub" hidden>
+        <p class="note" id="mediaInfo"></p>
+        <label>Starts at <input id="mOffset" type="number" min="0" step="0.1"> seconds</label>
+        <label><input id="mLoop" type="checkbox"> Loop the background</label>
+        <button type="button" id="mFill">Add frames to cover it</button>
+      </div>
+      <label>Image opacity <input id="bgOpacity" type="range" min="0" max="1" step="0.05"></label>
+      <label>Fit
+        <select id="bgFit"><option value="cover">Fill canvas</option><option value="contain">Fit inside</option></select>
+      </label>
+      <label><input id="bgExport" type="checkbox"> Include background in exports</label>
+    </div>
+
+    <div class="sec">
+      <h3>Canvas</h3>
+      <select id="sizePreset" aria-label="Canvas size preset">
+        <option value="1400x400">Wide banner, 1400 × 400</option>
+        <option value="1920x1080">HD, 1920 × 1080</option>
+        <option value="1280x720">720p, 1280 × 720</option>
+        <option value="1080x1080">Square, 1080 × 1080</option>
+        <option value="1080x1350">Portrait post, 1080 × 1350</option>
+        <option value="1080x1920">Story, 1080 × 1920</option>
+        <option value="custom">Custom</option>
+      </select>
+      <div class="row">
+        <label>W <input id="docW" type="number" min="64" max="4096"></label>
+        <label>H <input id="docH" type="number" min="64" max="4096"></label>
+        <button type="button" id="applySize">Resize</button>
+      </div>
+      <p class="note">Resizing scales your drawings to fit the new size.</p>
+      <button type="button" id="centerAll">Center artwork on every frame</button>
+      <p class="note">Moves all frames together, so your animation stays lined up with itself.</p>
+      <button type="button" id="newProject">New project</button>
+    </div>
+  </aside>
+</div>
+
+<dialog id="exportDlg" aria-labelledby="exTitle">
+  <h2 id="exTitle">Export</h2>
+  <div class="row">
+    <label>Scale
+      <select id="exScale"><option value="0.5">50%</option><option value="1" selected>100%</option><option value="2">200%</option></select>
+    </label>
+    <label><input id="exBg" type="checkbox"> Include background</label>
+  </div>
+  <div class="ex">
+    <button type="button" class="primary" id="exHtml">Web player</button>
+    <p>One .html file with your frames and the player code, ready to paste into a site.</p>
+    <button type="button" id="exSeq">PNG sequence</button>
+    <p>A .zip with one image per frame, holds included. Import into After Effects, EffectCraft or Procreate.</p>
+    <button type="button" id="exSprite">Sprite sheet</button>
+    <p>All frames in one .png grid, for your own player code.</p>
+    <button type="button" id="exVideo">Video</button>
+    <p>Records the intro plus <select id="exLoops" aria-label="Loop count"><option>1</option><option selected>3</option><option>6</option></select> loops. Always includes the background.</p>
+  </div>
+  <div class="row" style="border-top:1px solid var(--line); padding-top:12px">
+    <button type="button" id="saveProj">Save project</button>
+    <button type="button" id="openProj">Open project</button>
+    <input id="projFile" class="hidden-input" type="file" accept=".json,application/json">
+    <span class="spacer"></span>
+    <button type="button" id="exClose">Close</button>
+  </div>
+  <p class="note support-note" id="supportNote" hidden>Mocean is free, with no ads in the editor, and I'd like to keep it that way. If it helped you make something, please consider <a id="supportLink" target="_blank" rel="noopener">supporting it</a>.</p>
+</dialog>
+
+<dialog id="projectsDlg" aria-labelledby="projTitle">
+  <div class="row between">
+    <h2 id="projTitle" style="margin:0">Your projects</h2>
+    <div class="row">
+      <button type="button" id="pImport">Import .json</button>
+      <button type="button" class="primary" id="pNew">New project</button>
+    </div>
+  </div>
+  <p class="backup-note" id="pBackupNote" hidden></p>
+  <div class="plist" id="plist"></div>
+  <div class="row between">
+    <p class="note" id="pStorage"></p>
+    <button type="button" id="pClose">Close</button>
+  </div>
+</dialog>
+
+<dialog id="welcomeDlg" aria-labelledby="welcomeTitle">
+  <h2 id="welcomeTitle">Your work stays on this device</h2>
+  <p class="note" style="font-size:13px">Mocean saves your projects in this browser, on this device. Nothing is uploaded, so if you clear your browser data or switch devices, your projects won't come with you.</p>
+  <p class="note" style="font-size:13px">To keep a backup, use <b>Export</b>, then <b>Save project</b>. You can open that file again any time.</p>
+  <p class="note" style="font-size:13px" id="welcomeIos" hidden>On iPhone and iPad, Safari can clear a site's saved data if you don't visit it for a while. Tap Share, then <b>Add to Home Screen</b>, and open Mocean from there to keep your projects safe.</p>
+  <div class="row" style="margin-top:14px"><span class="spacer"></span><button type="button" class="primary" id="welcomeOk">Got it</button></div>
+</dialog>
+
+<dialog id="helpDlg" aria-labelledby="helpTitle">
+  <h2 id="helpTitle">Shortcuts</h2>
+  <div class="keys">
+    <kbd>B E L H</kbd><span>Brush, eraser, select, hand</span>
+    <kbd>[ ]</kbd><span>Smaller or bigger brush</span>
+    <kbd>Space</kbd><span>Hold and drag to pan</span>
+    <kbd>Cmd/Ctrl + scroll</kbd><span>Zoom, or pinch on a trackpad</span>
+    <kbd>0</kbd><span>Fit canvas to screen</span>
+    <kbd>, .</kbd><span>Previous or next frame (arrow keys work too)</span>
+    <kbd>N D</kbd><span>New frame, duplicate frame</span>
+    <kbd>Shift + N</kbd><span>Copy the current layer to the next frame and go there</span>
+    <kbd>O</kbd><span>Onion skin on or off</span>
+    <kbd>G</kbd><span>Grid and guides on or off</span>
+    <kbd>Arrows</kbd><span>Nudge a selection (Shift for 10 px). Without a selection, change frames.</span>
+    <kbd>Enter</kbd><span>Play or stop</span>
+    <kbd>Cmd/Ctrl + Z</kbd><span>Undo, add Shift to redo</span>
+    <kbd>Cmd/Ctrl + C X V</kbd><span>Copy, cut, paste (the selection, or the whole layer)</span>
+    <kbd>Cmd/Ctrl + A</kbd><span>Select everything on the layer</span>
+    <kbd>Delete</kbd><span>Delete the selection</span>
+    <kbd>Two fingers</kbd><span>Pinch to zoom and pan. Tap to undo, three-finger tap to redo.</span>
+    <kbd>Apple Pencil</kbd><span>Once used, one finger pans instead of drawing.</span>
+  </div>
+  <div class="row" style="margin-top:14px"><p class="note" style="margin:0">Mocean is free and open source (AGPL-3.0). <a href="https://github.com/KopikoCappu/mocean" target="_blank" rel="noopener" style="color:inherit">Source code</a></p><span class="spacer"></span><button type="button" id="helpClose">Close</button></div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="update" id="readyBar" role="status" hidden>
+  <span id="readyText"></span>
+  <button type="button" id="readyLater" class="icon-btn" aria-label="Dismiss">×</button>
+  <button type="button" class="primary" id="readySave">Save</button>
+</div>
+<div class="update" id="updateBar" role="status" hidden>
+  <span>New version available</span>
+  <button type="button" id="updateLater" class="icon-btn" aria-label="Dismiss">×</button>
+  <button type="button" class="primary" id="updateReload">Reload</button>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), sx = cv.getContext('2d');
+  const KEY = 'boil-studio-v2', BGKEY = 'boil-studio-v2-bg', UIKEY = 'boil-studio-v2-ui', OLDKEY = 'boil-studio-v1';
+  const EMPTY = Object.freeze([]);
+  let uidN = Math.floor(Math.random() * 1e6);
+  const uid = () => (++uidN).toString(36) + Math.random().toString(36).slice(2, 6);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // ================= document model =================
+  // The document is treated as immutable: every edit builds a new doc, so undo is just a stack of old docs.
+  function newLayer(name) { return { id: uid(), name, visible: true, opacity: 1, locked: false }; }
+  function newFrame(cels, hold) { return { id: uid(), r: uid(), hold: hold || 1, cels: cels || {} }; }
+  function newDoc(w, h) {
+    return {
+      v: 2, w, h, introFps: 15, loopFps: 10, loopStart: 0,
+      layers: [newLayer('Lines')], frames: [newFrame()],
+      bg: { color: '#101012', transparent: false, exportBg: false, imgOpacity: 1, fit: 'cover', mediaOffset: 0, mediaLoop: true, kind: '', mediaName: '' },
+      onion: { on: true, before: 1, after: 1, opacity: 0.4 }
+    };
+  }
+  function fixDoc(d) {
+    const base = newDoc(clamp(d.w | 0 || 1400, 64, 4096), clamp(d.h | 0 || 400, 64, 4096));
+    const doc = Object.assign({}, base, d, {
+      w: base.w, h: base.h,
+      bg: Object.assign({}, base.bg, d.bg || {}),
+      onion: Object.assign({}, base.onion, d.onion || {})
+    });
+    if (!Array.isArray(doc.layers) || !doc.layers.length) doc.layers = base.layers;
+    doc.layers = doc.layers.map(l => Object.assign(newLayer('Layer'), l));
+    const ids = new Set();
+    doc.frames = (Array.isArray(doc.frames) && doc.frames.length ? doc.frames : base.frames).map(f => {
+      let id = f.id || uid(); if (ids.has(id)) id = uid(); ids.add(id);
+      return { id, r: uid(), hold: clamp(f.hold | 0 || 1, 1, 48), cels: f.cels || {} };
+    });
+    delete doc.bgImage; delete doc.cur;
+    doc.loopStart = clamp(doc.loopStart | 0, 0, doc.frames.length - 1);
+    doc.v = 2;
+    return doc;
+  }
+  function fromV1(o) {
+    const w = 1400, h = Math.round(1400 / (o.aspect || 3.5));
+    const d = newDoc(w, h), L = d.layers[0];
+    d.frames = o.frames.map(f => newFrame({
+      [L.id]: (f.strokes || []).map(s => ({
+        brush: 'pen', color: s.color || '#fbf3e4', size: (s.size || 0.014) * w,
+        pts: (s.pts || []).map(p => [p[0] * w, p[1] * w, p[2] == null ? 0.6 : p[2]])
+      }))
+    }));
+    d.loopStart = clamp(o.loopStart | 0, 0, d.frames.length - 1);
+    d.introFps = o.introFps || 15; d.loopFps = o.loopFps || 10;
+    return d;
+  }
+  function loadDoc() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (d && d.v === 2 && Array.isArray(d.frames) && d.frames.length) return fixDoc(d);
+    } catch (e) {}
+    try {
+      const o = JSON.parse(localStorage.getItem(OLDKEY) || 'null');
+      if (o && Array.isArray(o.frames) && o.frames.length) return fromV1(o);
+    } catch (e) {}
+    return null;
+  }
+
+  let doc = loadDoc() || newDoc(1400, 400);
+  const ui = {
+    cur: 0, layer: doc.layers[doc.layers.length - 1].id, tool: 'brush', brush: 'pen',
+    sizes: { brush: 8, erase: 30 }, smooth: 0.6, cleanup: 0.5, color: '#ececee', eraseWhole: false,
+    recent: ['#ececee', '#101012', '#6883ba', '#c9725f', '#9a9aa2'],
+    grid: { on: false, lines: true, size: 50, center: true, thirds: false, snap: true },
+    view: { s: 1, x: 0, y: 0 }, playing: false, playIdx: 0, playHold: 0, hover: null, hoverPen: false
+  };
+  try {
+    const u = JSON.parse(localStorage.getItem(UIKEY) || 'null');
+    if (u) {
+      ['tool', 'brush', 'smooth', 'cleanup', 'color', 'eraseWhole'].forEach(k => { if (u[k] != null) ui[k] = u[k]; });
+      if (u.sizes) ui.sizes = Object.assign(ui.sizes, u.sizes);
+      if (Array.isArray(u.recent)) ui.recent = u.recent.slice(0, 8);
+      if (u.grid) ui.grid = Object.assign(ui.grid, u.grid);
+    }
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && saved.cur != null) ui.cur = saved.cur;
+  } catch (e) {}
+  if (ui.tool === 'hand') ui.tool = 'brush';
+
+  const undoS = [], redoS = [];
+  function commit(nd) {
+    undoS.push(doc); if (undoS.length > 200) undoS.shift();
+    redoS.length = 0; doc = nd; afterChange();
+  }
+  function undo() { if (!undoS.length) return; cancelAction(); redoS.push(doc); doc = undoS.pop(); clearSel(); afterChange(); }
+  function redo() { if (!redoS.length) return; cancelAction(); undoS.push(doc); doc = redoS.pop(); clearSel(); afterChange(); }
+  function clampUi() {
+    ui.cur = clamp(ui.cur, 0, doc.frames.length - 1);
+    if (!doc.layers.some(l => l.id === ui.layer)) ui.layer = doc.layers[doc.layers.length - 1].id;
+  }
+  function afterChange() {
+    clampUi(); renderStage(); renderFrames(); renderLayers(); syncControls(); persistSoon();
+  }
+  const cel = (fi, lid, d = doc) => (d.frames[fi] && d.frames[fi].cels[lid]) || EMPTY;
+  const layerOf = id => doc.layers.find(l => l.id === id);
+  function withCel(fi, lid, strokes) {
+    const frames = doc.frames.slice(), f = frames[fi];
+    frames[fi] = Object.assign({}, f, { r: uid(), cels: Object.assign({}, f.cels, { [lid]: strokes }) });
+    return Object.assign({}, doc, { frames });
+  }
+
+  // ================= persistence (IndexedDB) =================
+  // Each project is one record in IndexedDB, which holds hundreds of MB, unlike localStorage's ~5 MB.
+  // Backgrounds (images, GIFs, even videos) are stored separately under the project's id.
+  const CURKEY = 'mocean-current-project';
+  const DB = (() => {
+    let opening;
+    function open() {
+      if (!opening) opening = new Promise((res, rej) => {
+        const r = indexedDB.open('mocean', 1);
+        r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('projects', { keyPath: 'id' }); d.createObjectStore('media'); };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      return opening;
+    }
+    async function run(store, mode, fn) {
+      const d = await open();
+      return new Promise((res, rej) => {
+        const t = d.transaction(store, mode), req = fn(t.objectStore(store));
+        let out;
+        if (req) req.onsuccess = () => { out = req.result; };
+        t.oncomplete = () => res(out);
+        t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+      });
+    }
+    return {
+      get: (st, k) => run(st, 'readonly', s => s.get(k)),
+      put: (st, v, k) => run(st, 'readwrite', s => (k === undefined ? s.put(v) : s.put(v, k))),
+      del: (st, k) => run(st, 'readwrite', s => s.delete(k)),
+      all: st => run(st, 'readonly', s => s.getAll())
+    };
+  })();
+  let project = null, ready = false, storageOK = true, pT, warned = false;
+
+  // Saving a big project used to stall drawing for a third of a second, because IndexedDB
+  // deep-copied every stroke on every save. Frames never change in place (every edit makes a
+  // new one), so each frame is turned into JSON once and that string is reused until it changes.
+  // A record stores the document as small strings: docHead (everything but frames) and docFrames.
+  const frameJson = new WeakMap();
+  function frameStr(f) {
+    const c = frameJson.get(f.cels);
+    if (c && c.id === f.id && c.hold === f.hold) return c.s;
+    const str = JSON.stringify({ id: f.id, hold: f.hold, cels: f.cels });
+    frameJson.set(f.cels, { id: f.id, hold: f.hold, s: str });
+    return str;
+  }
+  const headStr = (d, extra) => JSON.stringify(Object.assign({}, d, { frames: undefined, bgImage: undefined, cur: undefined }, extra));
+  const joinDoc = (head, frames) => head.slice(0, -1) + ',"frames":[' + frames.join(',') + ']}';
+  const docJson = (d, extra) => joinDoc(headStr(d, extra), d.frames.map(frameStr));
+  const docHasArt = d => !!(d && Array.isArray(d.frames) && d.frames.some(f => f && f.cels && Object.values(f.cels).some(c => c && c.length)));
+  // Older records hold the document as an object in rec.doc; newer ones as strings.
+  function recDoc(r) {
+    if (!r.docHead) return r.doc;
+    const d = JSON.parse(r.docHead);
+    d.frames = r.docFrames.map(x => JSON.parse(x));
+    return d;
+  }
+  const recFrameCount = r => r.docFrames ? r.docFrames.length : (r.doc && r.doc.frames ? r.doc.frames.length : 0);
+  const recHasArt = r => r.art != null ? r.art : docHasArt(r.doc);
+  const recJson = (r, extra) => r.docHead ? joinDoc(r.docHead.slice(0, -1) + ',"bgImage":' + JSON.stringify(extra.bgImage) + '}', r.docFrames) : JSON.stringify(Object.assign({}, r.doc, extra));
+
+  // Big projects wait a little longer, and never save in the middle of a stroke.
+  function persistSoon() {
+    clearTimeout(pT);
+    pT = setTimeout(saveWhenIdle, doc.frames.length * doc.layers.length > 150 ? 1500 : 600);
+    try {
+      localStorage.setItem(UIKEY, JSON.stringify({
+        tool: ui.tool, brush: ui.brush, sizes: ui.sizes, smooth: ui.smooth, cleanup: ui.cleanup,
+        color: ui.color, eraseWhole: ui.eraseWhole, recent: ui.recent, grid: ui.grid
+      }));
+    } catch (e) {}
+  }
+  function saveWhenIdle() {
+    if (action) { pT = setTimeout(saveWhenIdle, 300); return; }
+    if (window.requestIdleCallback) requestIdleCallback(() => { if (action) saveWhenIdle(); else saveNow(); }, { timeout: 1000 });
+    else saveNow();
+  }
+  let thumbMemo = { c: null, url: '' };
+  function projectThumb() {
+    try {
+      const c = thumbFor(doc.frames[0], 0);
+      if (thumbMemo.c === c) return thumbMemo.url;
+      const t = mk(256, Math.max(1, Math.round(256 * c.height / c.width))), x = t.getContext('2d');
+      x.drawImage(c, 0, 0, t.width, t.height);
+      thumbMemo = { c, url: t.toDataURL('image/png') };
+      return thumbMemo.url;
+    } catch (e) { return ''; }
+  }
+  async function saveNow() {
+    clearTimeout(pT);
+    if (!ready || !project || !storageOK) return;
+    const rec = {
+      id: project.id, name: project.name, created: project.created, exported: project.exported || 0, updated: Date.now(), thumb: projectThumb(),
+      docHead: headStr(doc, { cur: ui.cur }), docFrames: doc.frames.map(frameStr), art: docHasArt(doc)
+    };
+    try { await DB.put('projects', rec); warned = false; }
+    catch (e) {
+      if (!warned) { warned = true; toast('Could not save. Your device may be low on space. Use Export, then Save project to keep this.'); }
+    }
+  }
+  async function saveMedia(entry) {
+    if (!project || !storageOK) return;
+    try {
+      // Some iOS versions can't put a Blob into IndexedDB, so videos are stored as plain bytes.
+      if (entry && entry.blob) entry = { kind: entry.kind, name: entry.name, type: entry.blob.type, buf: await entry.blob.arrayBuffer() };
+      entry ? await DB.put('media', entry, project.id) : await DB.del('media', project.id);
+    }
+    catch (e) { toast('This background is too big to keep on this device. It will be gone next time.'); }
+  }
+  addEventListener('pagehide', () => { saveNow(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
+
+  const pid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  function makeRecord(d, name) { const now = Date.now(); return { id: pid(), name, created: now, updated: now, thumb: '', doc: Object.assign({}, d, { cur: 0 }) }; }
+  function nextUntitled(list) {
+    let n = 1; const names = new Set(list.map(r => r.name));
+    while (names.has(n === 1 ? 'Untitled' : `Untitled ${n}`)) n++;
+    return n === 1 ? 'Untitled' : `Untitled ${n}`;
+  }
+  function slug() { return ((project && project.name) || 'mocean').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'mocean'; }
+
+  async function openProject(rec) {
+    await saveNow();
+    ready = false;
+    stopPlay(); cancelAction(); clearSel();
+    celLRU.clear(); compLRU.clear(); thumbCache.clear(); thumbMemo = { c: null, url: '' };
+    for (const b of frameBtns.values()) { if (thumbIO) thumbIO.unobserve(b); b.remove(); }
+    frameBtns.clear();
+    clearMedia(); bgData = null;
+    project = { id: rec.id, name: rec.name, created: rec.created || Date.now(), exported: rec.exported || 0 };
+    try { localStorage.setItem(CURKEY, rec.id); } catch (e) {}
+    const d = recDoc(rec);
+    doc = fixDoc(d);
+    if (rec.docFrames) doc.frames.forEach((f, i) => { if (f.cels === d.frames[i].cels) frameJson.set(f.cels, { id: f.id, hold: f.hold, s: rec.docFrames[i] }); });
+    undoS.length = 0; redoS.length = 0;
+    ui.cur = clamp((d && d.cur) | 0, 0, doc.frames.length - 1);
+    ui.layer = doc.layers[doc.layers.length - 1].id;
+    $('projName').textContent = rec.name;
+    document.title = `${rec.name} | Mocean`;
+    clampUi(); renderFrames(); renderLayers(); syncControls(); fit();
+    let m = null;
+    try { m = await DB.get('media', rec.id); } catch (e) {}
+    if (m && m.kind === 'data' && m.data) setBgData(m.data, true, true);
+    else if (m && m.kind === 'video' && (m.blob || m.buf)) await setBgVideo(m.blob || new Blob([m.buf], { type: m.type || 'video/mp4' }), true, m.name);
+    else afterBg();
+    ready = true;
+  }
+  async function createProject(d, name, mediaEntry) {
+    await saveNow();
+    let list = []; try { list = await DB.all('projects'); } catch (e) {}
+    const rec = makeRecord(d || newDoc(doc.w, doc.h), name || nextUntitled(list));
+    try { await DB.put('projects', rec); if (mediaEntry) await DB.put('media', mediaEntry, rec.id); }
+    catch (e) { toast('Could not create a project on this device.'); return; }
+    await openProject(rec);
+    return rec;
+  }
+
+  async function bootStorage() {
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    let list;
+    try { list = await DB.all('projects'); }
+    catch (e) {
+      storageOK = false; ready = true;
+      toast('This browser is blocking storage (private mode?). Work will not be kept, so use Export, then Save project.');
+      return;
+    }
+    if (!list.length) {
+      // First visit, or moving over from the older single-project autosave.
+      const legacy = loadDoc();
+      const rec = makeRecord(legacy || newDoc(1400, 400), legacy ? 'My first animation' : 'Untitled');
+      try {
+        await DB.put('projects', rec);
+        const b = localStorage.getItem(BGKEY);
+        if (legacy && b) await DB.put('media', { kind: 'data', data: b }, rec.id);
+      } catch (e) {}
+      list = [rec];
+    }
+    let cur = null; try { cur = localStorage.getItem(CURKEY); } catch (e) {}
+    const rec = list.find(r => r.id === cur) || list.sort((a, b) => b.updated - a.updated)[0];
+    await openProject(rec);
+  }
+
+  // Backups: work only lives in this browser, so remember when each project was last saved as a file.
+  const WEEK = 7 * 864e5, WELCOMEKEY = 'mocean-welcomed', NAGKEY = 'mocean-backup-nag';
+  const needsBackup = r => recHasArt(r) && r.updated > (r.exported || 0) && Date.now() - (r.exported || r.created || r.updated) >= WEEK;
+  async function backupRecord(r) {
+    let bg = null;
+    try { const m = await DB.get('media', r.id); if (m && m.kind === 'data') bg = m.data; } catch (e) {}
+    const name = (r.name || 'mocean').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'mocean';
+    const json = project && r.id === project.id ? docJson(doc, { bgImage: bgData || null }) : recJson(r, { bgImage: bg });
+    if (!await saveFile(`${name}.json`, json)) return;
+    r.exported = Date.now();
+    if (project && r.id === project.id) { project.exported = r.exported; await saveNow(); }
+    else { try { await DB.put('projects', r); } catch (e) {} }
+  }
+  function maybeWelcome() {
+    let seen = true; try { seen = !!localStorage.getItem(WELCOMEKEY); } catch (e) {}
+    if (seen || document.querySelector('dialog[open]')) return;
+    try { localStorage.setItem(WELCOMEKEY, '1'); } catch (e) {}
+    const standalone = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    $('welcomeIos').hidden = !(IOS && !standalone);
+    $('welcomeDlg').showModal();
+  }
+  $('welcomeOk').onclick = () => $('welcomeDlg').close();
+
+  // Projects dialog
+  let nagShown = false;
+  const ago = t => {
+    const s = Math.round((Date.now() - t) / 1000);
+    if (s < 60) return 'just now';
+    const m = Math.round(s / 60); if (m < 60) return `${m} min ago`;
+    const h = Math.round(m / 60); if (h < 24) return `${h} hr ago`;
+    const d = Math.round(h / 24); return d === 1 ? 'yesterday' : `${d} days ago`;
+  };
+  async function renderProjects() {
+    await saveNow();
+    let list = []; try { list = await DB.all('projects'); } catch (e) {}
+    list.sort((a, b) => b.updated - a.updated);
+    const box = $('plist'), frag = document.createDocumentFragment();
+    list.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'pcard';
+      if (project && r.id === project.id) card.setAttribute('aria-current', 'true');
+      const th = document.createElement('button');
+      th.type = 'button'; th.className = 'pthumb'; th.setAttribute('aria-label', `Open ${r.name}`);
+      if (r.thumb) th.style.backgroundImage = `url(${r.thumb})`;
+      th.onclick = async () => { $('projectsDlg').close(); if (!project || r.id !== project.id) await openProject(r); };
+      const meta = document.createElement('div'); meta.className = 'pmeta';
+      const nm = document.createElement('div'); nm.className = 'pname'; nm.textContent = r.name;
+      const wh = document.createElement('div'); wh.className = 'pwhen';
+      const fc = recFrameCount(r);
+      wh.textContent = `${fc} frame${fc === 1 ? '' : 's'}, edited ${ago(r.updated)}`;
+      if (r.exported) { const bk = document.createElement('div'); bk.className = 'pwhen'; bk.textContent = `Backed up ${ago(r.exported)}`; meta.append(bk); }
+      meta.prepend(nm, wh);
+      const acts = document.createElement('div'); acts.className = 'pacts';
+      const mkBtn = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = fn; return b; };
+      acts.append(
+        mkBtn('Back up', async () => { await backupRecord(r); renderProjects(); }),
+        mkBtn('Rename', async () => {
+          const n = prompt('Project name', r.name); if (!n || !n.trim()) return;
+          r.name = n.trim().slice(0, 60);
+          if (project && r.id === project.id) { project.name = r.name; $('projName').textContent = r.name; document.title = `${r.name} | Mocean`; await saveNow(); }
+          else { try { await DB.put('projects', r); } catch (e) {} }
+          renderProjects();
+        }),
+        mkBtn('Duplicate', async () => {
+          const now = Date.now(), copy = Object.assign({}, r, { id: pid(), name: `${r.name} copy`, created: now, updated: now, exported: 0 });
+          try {
+            await DB.put('projects', copy);
+            const m = await DB.get('media', r.id); if (m) await DB.put('media', m, copy.id);
+          } catch (e) { toast('Could not duplicate.'); }
+          renderProjects();
+        }),
+        mkBtn('Delete', async () => {
+          if (!confirm(`Delete "${r.name}" for good? This can't be undone.`)) return;
+          try { await DB.del('projects', r.id); await DB.del('media', r.id); } catch (e) {}
+          if (project && r.id === project.id) {
+            ready = false; project = null;
+            const rest = (await DB.all('projects')).sort((a, b) => b.updated - a.updated);
+            if (rest.length) await openProject(rest[0]); else await createProject(newDoc(1400, 400), 'Untitled');
+          }
+          renderProjects();
+        })
+      );
+      card.append(th, meta, acts);
+      frag.append(card);
+    });
+    box.replaceChildren(frag);
+    const note = $('pBackupNote'), stale = list.filter(needsBackup);
+    let nagged = nagShown; try { nagged = nagged || !!sessionStorage.getItem(NAGKEY); } catch (e) {}
+    if (stale.length && (!nagged || !note.hidden)) {
+      nagShown = true; try { sessionStorage.setItem(NAGKEY, '1'); } catch (e) {}
+      note.textContent = (stale.length === 1 ? `"${stale[0].name}" hasn't been backed up in over a week.` : `${stale.length} projects haven't been backed up in over a week.`) +
+        ' Projects only live in this browser, so press Back up to keep a copy as a file.';
+      note.hidden = false;
+    } else if (!stale.length) note.hidden = true;
+    try {
+      const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+      $('pStorage').textContent = `${list.length} project${list.length === 1 ? '' : 's'}, saved on this device only` +
+        (est && est.usage ? `, using ${(est.usage / 1048576).toFixed(1)} MB` : '') + '.';
+    } catch (e) {}
+  }
+
+  // ================= helpers =================
+  function mulberry(a) {
+    return () => {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hexRgb(h) {
+    const n = parseInt((h || '#ffffff').slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function mk(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h); return c; }
+  // free: give a canvas's pixel memory back right away when it leaves a cache. iOS Safari has a
+  // hard cap on total canvas memory and only frees it lazily otherwise.
+  class LRU {
+    constructor(free) { this.m = new Map(); this.free = free; }
+    get(k) { const v = this.m.get(k); if (v) { this.m.delete(k); this.m.set(k, v); } return v; }
+    set(k, v, n) {
+      this.m.set(k, v);
+      while (this.m.size > n) { const k0 = this.m.keys().next().value, v0 = this.m.get(k0); this.m.delete(k0); if (this.free && v0) { v0.width = 0; v0.height = 0; } }
+    }
+    clear() { if (this.free) for (const v of this.m.values()) if (v) { v.width = 0; v.height = 0; } this.m.clear(); }
+  }
+  const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // Bytes of full-size canvases each cache may hold. Two caches use this, so iOS stays well under its limit.
+  const CACHE_BYTES = IOS ? 64e6 : 140e6;
+  const budget = () => clamp(Math.floor(CACHE_BYTES / (doc.w * doc.h * 4)), 4, 80);
+
+  // ================= stroke rendering =================
+  const grain = new Map();
+  function pencilPattern(c, color) {
+    let t = grain.get(color);
+    if (!t) {
+      t = mk(64, 64);
+      const x = t.getContext('2d'), img = x.createImageData(64, 64), [r, g, b] = hexRgb(color), rnd = mulberry(7);
+      for (let i = 0; i < 64 * 64; i++) {
+        img.data[i * 4] = r; img.data[i * 4 + 1] = g; img.data[i * 4 + 2] = b;
+        img.data[i * 4 + 3] = rnd() < 0.6 ? 170 + rnd() * 85 : rnd() * 70;
+      }
+      x.putImageData(img, 0, 0);
+      grain.set(color, t);
+    }
+    return c.createPattern(t, 'repeat');
+  }
+  function smoothPath(c, p) {
+    c.beginPath(); c.moveTo(p[0][0], p[0][1]);
+    if (p.length === 1) { c.lineTo(p[0][0] + 0.01, p[0][1]); return; }
+    for (let i = 1; i < p.length; i++) {
+      const last = i === p.length - 1;
+      c.quadraticCurveTo(p[i][0], p[i][1], last ? p[i][0] : (p[i][0] + p[i + 1][0]) / 2, last ? p[i][1] : (p[i][1] + p[i + 1][1]) / 2);
+    }
+  }
+  function drawStroke(c, s) {
+    const p = s.pts; if (!p || !p.length) return;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    if (s.brush === 'marker') {
+      c.strokeStyle = s.color; c.lineWidth = s.size; smoothPath(c, p); c.stroke(); return;
+    }
+    const pencil = s.brush === 'pencil';
+    const style = pencil ? pencilPattern(c, s.color) : s.color;
+    c.strokeStyle = style; c.fillStyle = style;
+    const wf = pencil ? q => s.size * (0.45 + 0.55 * q) : q => s.size * (0.12 + 0.98 * q);
+    if (p.length === 1) { c.beginPath(); c.arc(p[0][0], p[0][1], wf(p[0][2]) / 2, 0, Math.PI * 2); c.fill(); return; }
+    let mx = p[0][0], my = p[0][1];
+    for (let i = 1; i < p.length; i++) {
+      const last = i === p.length - 1;
+      const nx = last ? p[i][0] : (p[i][0] + p[i + 1][0]) / 2;
+      const ny = last ? p[i][1] : (p[i][1] + p[i + 1][1]) / 2;
+      c.lineWidth = wf(p[i][2]);
+      c.beginPath(); c.moveTo(mx, my); c.quadraticCurveTo(p[i][0], p[i][1], nx, ny); c.stroke();
+      mx = nx; my = ny;
+    }
+  }
+
+  // ================= caches =================
+  const refIds = new WeakMap(); let refN = 0;
+  const rid = o => { let v = refIds.get(o); if (!v) { v = ++refN; refIds.set(o, v); } return v; };
+  const celLRU = new LRU(true), compLRU = new LRU(true), thumbCache = new Map();
+  const layerSig = () => doc.layers.map(l => l.id + (l.visible ? 1 : 0) + ':' + l.opacity).join('|');
+  const bgSig = () => [doc.bg.color, doc.bg.transparent, bgId, doc.bg.imgOpacity, doc.bg.fit, doc.bg.mediaOffset, doc.bg.mediaLoop].join('|');
+
+  function celCanvas(strokes) {
+    if (!strokes.length) return null;
+    const k = rid(strokes) + ':' + doc.w + 'x' + doc.h;
+    let c = celLRU.get(k);
+    if (!c) {
+      c = mk(doc.w, doc.h);
+      const x = c.getContext('2d');
+      for (const s of strokes) drawStroke(x, s);
+      celLRU.set(k, c, budget());
+    }
+    return c;
+  }
+  function composite(fi, tint) {
+    const f = doc.frames[fi]; if (!f) return null;
+    const k = f.r + '|' + layerSig() + '|' + (tint || '') + '|' + doc.w + 'x' + doc.h;
+    let c = compLRU.get(k); if (c) return c;
+    c = mk(doc.w, doc.h);
+    const x = c.getContext('2d');
+    let any = false;
+    for (const L of doc.layers) {
+      if (!L.visible) continue;
+      const cc = celCanvas(cel(fi, L.id)); if (!cc) continue;
+      any = true; x.globalAlpha = L.opacity; x.drawImage(cc, 0, 0);
+    }
+    x.globalAlpha = 1;
+    if (tint && any) {
+      x.globalCompositeOperation = 'source-in'; x.fillStyle = tint; x.fillRect(0, 0, doc.w, doc.h);
+      x.globalCompositeOperation = 'source-over';
+    }
+    compLRU.set(k, c, budget());
+    return c;
+  }
+
+  let checker = null;
+  function drawBg(c, w, h, editor, forceSolid, src) {
+    const bg = doc.bg;
+    if (bg.transparent && !forceSolid) {
+      if (editor) {
+        if (!checker) {
+          checker = mk(24, 24);
+          const x = checker.getContext('2d');
+          x.fillStyle = '#4a4a4a'; x.fillRect(0, 0, 24, 24);
+          x.fillStyle = '#5c5c5c'; x.fillRect(0, 0, 12, 12); x.fillRect(12, 12, 12, 12);
+        }
+        c.fillStyle = c.createPattern(checker, 'repeat'); c.fillRect(0, 0, w, h);
+      }
+    } else { c.fillStyle = bg.color; c.fillRect(0, 0, w, h); }
+    if (src) {
+      const sw = src.videoWidth || src.naturalWidth || src.width, sh = src.videoHeight || src.naturalHeight || src.height;
+      if (!sw || !sh) return;
+      const k = bg.fit === 'contain' ? Math.min(w / sw, h / sh) : Math.max(w / sw, h / sh);
+      const iw = sw * k, ih = sh * k;
+      c.save(); c.globalAlpha = bg.imgOpacity;
+      c.beginPath(); c.rect(0, 0, w, h); c.clip();
+      c.drawImage(src, (w - iw) / 2, (h - ih) / 2, iw, ih);
+      c.restore();
+    }
+  }
+
+  // ================= background media (image, GIF, video) =================
+  // Each frame sits at a point in time on the timeline; a GIF or video background shows
+  // whatever is on screen at that moment, so you can trace over it frame by frame.
+  let media = null, bgData = null, bgId = 0;
+  const fpsOf = i => (i < doc.loopStart ? doc.introFps : doc.loopFps);
+  function frameStart(fi) { let t = 0; for (let j = 0; j < fi && j < doc.frames.length; j++) t += doc.frames[j].hold / fpsOf(j); return t; }
+  const timelineLength = () => frameStart(doc.frames.length);
+  const bgTimeAt = (fi, dt) => (doc.bg.mediaOffset || 0) + frameStart(fi) + (dt || 0);
+  const bgTime = (fi, sub) => bgTimeAt(fi, (sub || 0) / fpsOf(fi));
+  function wrapT(t) {
+    const d = media && media.duration;
+    if (!d || !isFinite(d)) return Math.max(0, t);
+    if (doc.bg.mediaLoop) return ((t % d) + d) % d;
+    return clamp(t, 0, Math.max(0, d - 1 / 60));
+  }
+  const isMoving = () => !!media && media.kind !== 'image';
+
+  function gifAt(t) {
+    const fr = media.frames; t = wrapT(t);
+    let lo = 0, hi = fr.length - 1;
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (fr[m].t0 <= t) lo = m; else hi = m - 1; }
+    return fr[lo].c;
+  }
+
+  const vidCache = new LRU(), vq = new Map();
+  let vBusy = false;
+  const vKey = t => Math.round(t * 600);
+  const vBudget = () => (media && media.kind === 'video' ? clamp(Math.floor(380e6 / (media.cw * media.ch * 4)), 16, 400) : 16);
+  function videoRequest(t, keep) {
+    const k = vKey(t), hit = vidCache.get(k);
+    if (hit) return Promise.resolve(hit);
+    return new Promise(res => {
+      let e = vq.get(k);
+      if (!e) { e = { t, waiters: [], keep: false }; vq.set(k, e); }
+      e.waiters.push(res); e.at = performance.now(); e.keep = e.keep || !!keep;
+      vPump();
+    });
+  }
+  function videoFrameAt(t) {
+    t = wrapT(t);
+    const hit = vidCache.get(vKey(t));
+    if (hit) return hit;
+    videoRequest(t, false);
+    return media.last || null;
+  }
+  function seekGrab(m, t) {
+    const v = m.el;
+    return new Promise(res => {
+      let done = false, to;
+      const finish = () => {
+        if (done) return; done = true;
+        v.removeEventListener('seeked', finish); clearTimeout(to);
+        const c = mk(m.cw, m.ch);
+        try { c.getContext('2d').drawImage(v, 0, 0, m.cw, m.ch); } catch (err) {}
+        res(c);
+      };
+      to = setTimeout(finish, 2000);
+      if (Math.abs(v.currentTime - t) < 1e-4 && v.readyState >= 2) { finish(); return; }
+      v.addEventListener('seeked', finish);
+      v.currentTime = t;
+    });
+  }
+  async function vPump() {
+    if (vBusy) return;
+    vBusy = true;
+    while (vq.size && media && media.kind === 'video') {
+      let bk = null, best = null;
+      for (const [k, e] of vq) if (!best || e.at > best.at) { best = e; bk = k; }
+      vq.delete(bk);
+      if (!best.keep && performance.now() - best.at > 1500) { best.waiters.forEach(r => r(media.last)); continue; }
+      const m = media, c = await seekGrab(m, best.t);
+      if (media !== m) break;
+      vidCache.set(bk, c, vBudget());
+      media.last = c;
+      best.waiters.forEach(r => r(c));
+      requestRender();
+    }
+    vBusy = false;
+  }
+  function bgSource(fi, sub) {
+    if (!media) return null;
+    if (media.kind === 'image') return media.img;
+    if (media.kind === 'gif') return gifAt(bgTime(fi, sub));
+    return videoFrameAt(bgTime(fi, sub));
+  }
+  async function bgSourceExact(fi, dt) {
+    if (!media) return null;
+    if (media.kind === 'image') return media.img;
+    const t = wrapT(bgTimeAt(fi, dt));
+    if (media.kind === 'gif') return gifAt(t);
+    return videoRequest(t, true);
+  }
+
+  // A small GIF decoder: LZW, transparency, disposal and interlacing.
+  function lzw(minCode, data, n) {
+    const out = new Uint8Array(n), clear = 1 << minCode, eoi = clear + 1;
+    let size = minCode + 1, mask = (1 << size) - 1, next = eoi + 1;
+    const prefix = new Int16Array(4096), suffix = new Uint8Array(4096), stack = new Uint8Array(4097);
+    for (let i = 0; i < clear; i++) { prefix[i] = -1; suffix[i] = i; }
+    let old = -1, first = 0, bits = 0, datum = 0, o = 0, pi = 0;
+    while (o < n) {
+      while (bits < size) { if (pi >= data.length) return out; datum |= data[pi++] << bits; bits += 8; }
+      let code = datum & mask; datum >>>= size; bits -= size;
+      if (code === clear) { size = minCode + 1; mask = (1 << size) - 1; next = eoi + 1; old = -1; continue; }
+      if (code === eoi) break;
+      if (old === -1) { if (code < clear) { out[o++] = code; first = code; old = code; } continue; }
+      const inCode = code; let sp = 0;
+      if (code >= next) { stack[sp++] = first; code = old; }
+      while (code >= clear) { stack[sp++] = suffix[code]; code = prefix[code]; if (sp > 4096) return out; }
+      first = suffix[code]; stack[sp++] = first;
+      if (next < 4096) {
+        prefix[next] = old; suffix[next] = first; next++;
+        if ((next & mask) === 0 && next < 4096) { size++; mask = (1 << size) - 1; }
+      }
+      old = inCode;
+      while (sp > 0 && o < n) out[o++] = stack[--sp];
+    }
+    return out;
+  }
+  function decodeGif(u) {
+    let p = 0;
+    const rd = () => u[p++], rd16 = () => { const v = u[p] | (u[p + 1] << 8); p += 2; return v; };
+    if (u[0] !== 0x47 || u[1] !== 0x49 || u[2] !== 0x46) throw new Error('not a gif');
+    p = 6;
+    const W = rd16(), H = rd16(), pk = rd(); rd(); rd();
+    let gct = null;
+    if (pk & 0x80) { const n = 2 << (pk & 7); gct = u.subarray(p, p + n * 3); p += n * 3; }
+    const screen = new Uint8ClampedArray(W * H * 4), frames = [];
+    let gce = { delay: 10, transp: -1, disposal: 0 }, t = 0, lastDisp = 0, lastRect = null, saved = null;
+    while (p < u.length) {
+      const b = rd();
+      if (b === 0x3B) break;
+      if (b === 0x21) {
+        const label = rd();
+        if (label === 0xF9) {
+          const len = rd(), f = rd(), delay = rd16(), ti = rd();
+          p += Math.max(0, len - 4);
+          gce = { disposal: (f >> 2) & 7, transp: f & 1 ? ti : -1, delay };
+        }
+        let sz; while ((sz = rd()) !== 0 && p < u.length) p += sz;
+        continue;
+      }
+      if (b !== 0x2C) break;
+      const x = rd16(), y = rd16(), w = rd16(), h = rd16(), ipk = rd();
+      let ct = gct;
+      if (ipk & 0x80) { const n = 2 << (ipk & 7); ct = u.subarray(p, p + n * 3); p += n * 3; }
+      const minCode = rd(), chunks = [];
+      let total = 0, sz;
+      while ((sz = rd()) !== 0 && p < u.length) { chunks.push(u.subarray(p, p + sz)); p += sz; total += sz; }
+      const data = new Uint8Array(total); let o = 0;
+      for (const c of chunks) { data.set(c, o); o += c.length; }
+      const idx = lzw(minCode, data, w * h);
+      if (lastDisp === 2 && lastRect) {
+        for (let yy = lastRect.y; yy < Math.min(H, lastRect.y + lastRect.h); yy++)
+          screen.fill(0, (yy * W + lastRect.x) * 4, (yy * W + Math.min(W, lastRect.x + lastRect.w)) * 4);
+      } else if (lastDisp === 3 && saved) screen.set(saved);
+      saved = gce.disposal === 3 ? screen.slice() : null;
+      let rows = null;
+      if (ipk & 0x40) { rows = []; for (const [s0, st] of [[0, 8], [4, 8], [2, 4], [1, 2]]) for (let r = s0; r < h; r += st) rows.push(r); }
+      if (ct) {
+        for (let i = 0; i < h; i++) {
+          const sy = y + (rows ? rows[i] : i); if (sy >= H) continue;
+          for (let j = 0; j < w; j++) {
+            const sx2 = x + j; if (sx2 >= W) continue;
+            const ci = idx[i * w + j]; if (ci === gce.transp) continue;
+            const q = (sy * W + sx2) * 4;
+            screen[q] = ct[ci * 3]; screen[q + 1] = ct[ci * 3 + 1]; screen[q + 2] = ct[ci * 3 + 2]; screen[q + 3] = 255;
+          }
+        }
+      }
+      const c = mk(W, H);
+      c.getContext('2d').putImageData(new ImageData(screen.slice(), W, H), 0, 0);
+      frames.push({ c, t0: t });
+      t += gce.delay < 2 ? 0.1 : gce.delay / 100;
+      lastDisp = gce.disposal; lastRect = { x, y, w, h };
+      gce = { delay: 10, transp: -1, disposal: 0 };
+    }
+    if (!frames.length) throw new Error('empty gif');
+    return { frames, duration: t };
+  }
+  const dataToBytes = d => { const bin = atob(d.split(',')[1] || ''); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+
+  function clearMedia() {
+    if (media && media.kind === 'video') { try { media.el.pause(); URL.revokeObjectURL(media.el.src); media.el.remove(); } catch (e) {} }
+    media = null; vidCache.clear(); vq.clear();
+  }
+  function afterBg() { bgId++; renderStage(); renderFrames(); syncControls(); }
+  function setBgData(data, quiet, fromStore) {
+    clearMedia(); bgData = data || null;
+    if (!data) {
+      doc.bg.kind = ''; doc.bg.mediaName = '';
+      if (!fromStore) saveMedia(null);
+      afterBg(); persistSoon(); return;
+    }
+    if (data.startsWith('data:image/gif')) {
+      try {
+        const g = decodeGif(dataToBytes(data));
+        media = { kind: g.frames.length > 1 ? 'gif' : 'image', frames: g.frames, duration: g.duration, img: g.frames[0].c };
+        doc.bg.kind = media.kind;
+      } catch (err) { toast('That GIF could not be read.'); bgData = null; afterBg(); return; }
+      afterBg();
+    } else {
+      const img = new Image();
+      img.onload = () => { media = { kind: 'image', img }; doc.bg.kind = 'image'; afterBg(); };
+      img.src = data;
+    }
+    if (!fromStore) saveMedia({ kind: 'data', data });
+    persistSoon();
+  }
+  async function setBgVideo(file, fromStore, name) {
+    clearMedia(); bgData = null;
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto';
+    // iOS decodes video more reliably when the element is in the page, so keep it there, invisible.
+    v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+    document.body.append(v);
+    v.src = URL.createObjectURL(file);
+    try {
+      // iOS often won't load any frames until play() is called, so wait for metadata, nudge it, then check.
+      await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error('video')); setTimeout(() => rej(new Error('timeout')), 15000); });
+      if (v.readyState < 2) { try { await v.play(); v.pause(); } catch (e) {} }
+      if (!v.videoWidth || !v.videoHeight) throw new Error('video');
+      const k = Math.min(1, 1280 / Math.max(v.videoWidth, v.videoHeight));
+      media = { kind: 'video', el: v, duration: v.duration, cw: Math.max(1, Math.round(v.videoWidth * k)), ch: Math.max(1, Math.round(v.videoHeight * k)), last: null };
+      media.last = await seekGrab(media, wrapT(bgTime(ui.cur, 0)));
+      doc.bg.kind = 'video'; doc.bg.mediaName = file.name || name || doc.bg.mediaName || 'video';
+      if (!fromStore) saveMedia({ kind: 'video', blob: file, name: file.name || 'video' });
+      afterBg(); persistSoon();
+      if (!fromStore) toast('Video loaded. Each frame shows the video at its point on the timeline.');
+    } catch (err) { v.remove(); toast('That video could not be opened in this browser. Try an .mp4.'); afterBg(); }
+  }
+
+  // ================= stage =================
+  let dpr = 1, didFit = false;
+  const live = { stroke: null, strokes: null, lasso: null, xf: null, erased: false };
+  let sel = null, clip = null, action = null;
+
+  function resizeCanvas() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+    if (!didFit && r.width > 10) { didFit = true; fit(); return; }
+    renderStage();
+  }
+  function fit() {
+    const r = cv.getBoundingClientRect(), pad = 28;
+    const s = Math.min((r.width - pad * 2) / doc.w, (r.height - pad * 2) / doc.h);
+    ui.view = { s: Math.max(0.02, s), x: (r.width - doc.w * Math.max(0.02, s)) / 2, y: (r.height - doc.h * Math.max(0.02, s)) / 2 };
+    renderStage(); syncZoom();
+  }
+  function zoomAt(f, cx, cy) {
+    const v = ui.view, ns = clamp(v.s * f, 0.02, 24), k = ns / v.s;
+    v.x = cx - (cx - v.x) * k; v.y = cy - (cy - v.y) * k; v.s = ns;
+    renderStage(); syncZoom();
+  }
+  function zoomCenter(f) { const r = cv.getBoundingClientRect(); zoomAt(f, r.width / 2, r.height / 2); }
+  function syncZoom() { $('zoomPct').textContent = Math.round(ui.view.s * 100) + '%'; }
+
+  const xfPt = (p, xf) => {
+    if (xf.type === 'move') return [p[0] + xf.dx, p[1] + xf.dy, p[2]];
+    if (xf.type === 'scale') return [xf.cx + (p[0] - xf.cx) * xf.s, xf.cy + (p[1] - xf.cy) * xf.s, p[2]];
+    return [2 * xf.cx - p[0], p[1], p[2]];
+  };
+  const xfStroke = (s, xf) => Object.assign({}, s, { size: xf.type === 'scale' ? s.size * xf.s : s.size, pts: s.pts.map(p => xfPt(p, xf)) });
+
+  let rafPending = false;
+  function requestRender() { if (!rafPending) { rafPending = true; requestAnimationFrame(() => { rafPending = false; renderStage(); }); } }
+
+  function renderStage() {
+    const v = ui.view;
+    sx.setTransform(1, 0, 0, 1, 0, 0);
+    sx.clearRect(0, 0, cv.width, cv.height);
+    sx.setTransform(dpr * v.s, 0, 0, dpr * v.s, dpr * v.x, dpr * v.y);
+    sx.save();
+    sx.shadowColor = 'rgba(0,0,0,0.45)'; sx.shadowBlur = 24 * dpr;
+    sx.fillStyle = '#000'; sx.fillRect(0, 0, doc.w, doc.h);
+    sx.restore();
+    drawBg(sx, doc.w, doc.h, true, false, ui.playing ? bgSource(ui.playIdx, ui.playHold) : bgSource(ui.cur, 0));
+    sx.save(); sx.beginPath(); sx.rect(0, 0, doc.w, doc.h); sx.clip();
+
+    if (ui.playing) {
+      const c = composite(ui.playIdx); if (c) sx.drawImage(c, 0, 0);
+      sx.restore(); return;
+    }
+    const o = doc.onion;
+    if (o.on) {
+      for (let i = o.before; i >= 1; i--) {
+        const c = composite(ui.cur - i, '#d0715c');
+        if (c) { sx.globalAlpha = o.opacity * (1 - (i - 1) / (o.before + 0.6)); sx.drawImage(c, 0, 0); }
+      }
+      for (let i = o.after; i >= 1; i--) {
+        const c = composite(ui.cur + i, '#6883ba');
+        if (c) { sx.globalAlpha = o.opacity * 0.8 * (1 - (i - 1) / (o.after + 0.6)); sx.drawImage(c, 0, 0); }
+      }
+      sx.globalAlpha = 1;
+    }
+    for (const L of doc.layers) {
+      if (!L.visible) continue;
+      const active = L.id === ui.layer;
+      sx.globalAlpha = L.opacity;
+      if (active && live.strokes) {
+        for (const s of live.strokes) drawStroke(sx, s);
+      } else if (active && live.xf && sel) {
+        cel(ui.cur, L.id).forEach((s, i) => drawStroke(sx, sel.idx.has(i) ? xfStroke(s, live.xf) : s));
+      } else {
+        const c = celCanvas(cel(ui.cur, L.id)); if (c) sx.drawImage(c, 0, 0);
+      }
+      if (active && live.stroke) drawStroke(sx, live.stroke);
+    }
+    sx.globalAlpha = 1;
+    sx.restore();
+
+    const px = 1 / v.s;
+    const G = ui.grid;
+    if (G.on) {
+      sx.save(); sx.lineWidth = px;
+      if (G.lines) {
+        sx.strokeStyle = 'rgba(140,140,140,0.32)';
+        sx.beginPath();
+        for (let gx = G.size; gx < doc.w; gx += G.size) { sx.moveTo(gx, 0); sx.lineTo(gx, doc.h); }
+        for (let gy = G.size; gy < doc.h; gy += G.size) { sx.moveTo(0, gy); sx.lineTo(doc.w, gy); }
+        sx.stroke();
+      }
+      if (G.thirds) {
+        sx.strokeStyle = 'rgba(160,160,170,0.6)';
+        sx.beginPath();
+        for (const f of [1 / 3, 2 / 3]) { sx.moveTo(doc.w * f, 0); sx.lineTo(doc.w * f, doc.h); sx.moveTo(0, doc.h * f); sx.lineTo(doc.w, doc.h * f); }
+        sx.stroke();
+      }
+      if (G.center) {
+        sx.strokeStyle = 'rgba(104,131,186,0.95)'; sx.setLineDash([8 * px, 5 * px]);
+        sx.beginPath();
+        sx.moveTo(doc.w / 2, 0); sx.lineTo(doc.w / 2, doc.h); sx.moveTo(0, doc.h / 2); sx.lineTo(doc.w, doc.h / 2);
+        sx.stroke();
+      }
+      sx.restore();
+    }
+    if (live.guides && (live.guides.x != null || live.guides.y != null)) {
+      sx.save(); sx.strokeStyle = '#ff4fd8'; sx.lineWidth = 1.5 * px;
+      sx.beginPath();
+      if (live.guides.x != null) { sx.moveTo(live.guides.x, 0); sx.lineTo(live.guides.x, doc.h); }
+      if (live.guides.y != null) { sx.moveTo(0, live.guides.y); sx.lineTo(doc.w, live.guides.y); }
+      sx.stroke(); sx.restore();
+    }
+    if (sel && sel.fi === ui.cur && sel.lid === ui.layer) {
+      let b = sel.box;
+      if (live.xf) {
+        const a = xfPt([b.x0, b.y0, 0], live.xf), c = xfPt([b.x1, b.y1, 0], live.xf);
+        b = { x0: Math.min(a[0], c[0]), y0: Math.min(a[1], c[1]), x1: Math.max(a[0], c[0]), y1: Math.max(a[1], c[1]) };
+      }
+      sx.save();
+      sx.lineWidth = 1.5 * px; sx.setLineDash([6 * px, 4 * px]); sx.strokeStyle = '#6883ba';
+      sx.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+      sx.setLineDash([]); sx.fillStyle = '#ececee'; sx.strokeStyle = '#0b0b0c';
+      const hs = 9 * px;
+      for (const [hx, hy] of corners(b)) { sx.fillRect(hx - hs / 2, hy - hs / 2, hs, hs); sx.strokeRect(hx - hs / 2, hy - hs / 2, hs, hs); }
+      sx.restore();
+    }
+    if (live.lasso && live.lasso.length > 1) {
+      sx.save(); sx.lineWidth = 1.5 * px; sx.setLineDash([5 * px, 4 * px]); sx.strokeStyle = '#6883ba';
+      sx.beginPath(); live.lasso.forEach((p, i) => i ? sx.lineTo(p[0], p[1]) : sx.moveTo(p[0], p[1])); sx.closePath(); sx.stroke();
+      sx.restore();
+    }
+    if (ui.tool === 'erase' && ui.hover && !ui.hoverTouch) {
+      sx.save(); sx.lineWidth = 1.5 * px; sx.strokeStyle = 'rgba(255,255,255,0.85)';
+      sx.beginPath(); sx.arc(ui.hover[0], ui.hover[1], ui.sizes.erase / 2, 0, Math.PI * 2); sx.stroke();
+      sx.strokeStyle = 'rgba(0,0,0,0.6)'; sx.lineWidth = 1 * px;
+      sx.beginPath(); sx.arc(ui.hover[0], ui.hover[1], ui.sizes.erase / 2 + 1.5 * px, 0, Math.PI * 2); sx.stroke();
+      sx.restore();
+    }
+  }
+  const corners = b => [[b.x0, b.y0], [b.x1, b.y0], [b.x1, b.y1], [b.x0, b.y1]];
+
+  // ================= frames panel =================
+  function thumbKey(f, i) {
+    const gifT = media && media.kind === 'gif' ? '|' + bgTime(i, 0).toFixed(3) : '';
+    return f.r + '|' + layerSig() + '|' + bgSig() + gifT + '|' + doc.w + 'x' + doc.h;
+  }
+  function thumbFor(f, i) {
+    let tw = 128, th = Math.round(tw * doc.h / doc.w);
+    if (th > 128) { th = 128; tw = Math.round(128 * doc.w / doc.h); }
+    const k = thumbKey(f, i);
+    let c = thumbCache.get(k);
+    if (c) return c;
+    c = mk(tw * 2, th * 2);
+    const x = c.getContext('2d'), s = c.width / doc.w;
+    x.scale(s, s);
+    drawBg(x, doc.w, doc.h, true, false, media && media.kind !== 'video' ? bgSource(i, 0) : null);
+    for (const L of doc.layers) {
+      if (!L.visible) continue;
+      x.globalAlpha = L.opacity;
+      for (const st of (f.cels[L.id] || EMPTY)) drawStroke(x, st);
+    }
+    thumbCache.set(k, c);
+    if (thumbCache.size > Math.max(300, doc.frames.length * 2)) thumbCache.delete(thumbCache.keys().next().value);
+    return c;
+  }
+  // The frame list keeps one button per frame and reuses it. Thumbnails are drawn only for
+  // buttons near the visible part of the list, and only redrawn when that frame changed.
+  const frameBtns = new Map();
+  const thumbIO = window.IntersectionObserver ? new IntersectionObserver(es => es.forEach(e => {
+    e.target._near = e.isIntersecting; if (e.isIntersecting) setThumb(e.target);
+  }), { root: $('frameList'), rootMargin: '600px 0px' }) : null;
+  function setThumb(b) {
+    const f = b._f; if (!f) return;
+    const c = thumbFor(f, b._i);
+    if (b.firstChild !== c) b.replaceChild(c, b.firstChild);
+  }
+  // Draw the off-screen thumbnails a few at a time while nothing else is happening,
+  // so jumping or scrolling through a long animation doesn't wait on them.
+  let warmI = 0, warmT = 0;
+  function warmThumbs() {
+    warmI = 0;
+    if (warmT) return;
+    const idle = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 2000 }) : f => setTimeout(() => f({ timeRemaining: () => 8 }), 80);
+    const step = dl => {
+      warmT = 0;
+      if (action || ui.playing) { warmT = 1; setTimeout(() => { warmT = 0; warmThumbs(); }, 500); return; }
+      while (warmI < doc.frames.length && dl.timeRemaining() > 4) { thumbFor(doc.frames[warmI], warmI); warmI++; }
+      if (warmI < doc.frames.length) { warmT = 1; idle(step); }
+    };
+    warmT = 1; idle(step);
+  }
+  function renderFrames() {
+    const list = $('frameList'), seen = new Set(), ratio = `${doc.w} / ${doc.h}`;
+    doc.frames.forEach((f, i) => {
+      let b = frameBtns.get(f.id);
+      if (!b) {
+        b = document.createElement('button');
+        b.type = 'button'; b.draggable = true;
+        const ph = document.createElement('span'); ph.className = 'tph';
+        b._num = document.createElement('span'); b._num.className = 'num';
+        b._hb = document.createElement('span'); b._hb.className = 'hb';
+        b.append(ph, b._num, b._hb);
+        frameBtns.set(f.id, b);
+        if (thumbIO) thumbIO.observe(b); else b._near = true;
+      }
+      seen.add(f.id);
+      b._f = f; b._i = i;
+      b.className = 'fr ' + (i < doc.loopStart ? 'intro' : 'loop');
+      b.dataset.i = i;
+      b.setAttribute('aria-label', `Frame ${i + 1}${f.hold > 1 ? `, held ${f.hold}` : ''}, ${i < doc.loopStart ? 'plays once' : 'loops'}`);
+      if (i === ui.cur) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+      b._num.textContent = i + 1;
+      b._hb.textContent = '×' + f.hold; b._hb.hidden = f.hold < 2;
+      if (b.firstChild.className === 'tph') b.firstChild.style.aspectRatio = ratio;
+      if (b._near) setThumb(b);
+      else if (b.firstChild.tagName === 'CANVAS' && b._key !== thumbKey(f, i)) {
+        const ph = document.createElement('span'); ph.className = 'tph'; ph.style.aspectRatio = ratio; b.replaceChild(ph, b.firstChild);
+      }
+      b._key = thumbKey(f, i);
+      if (list.children[i] !== b) list.insertBefore(b, list.children[i] || null);
+    });
+    for (const [id, b] of frameBtns) if (!seen.has(id)) { frameBtns.delete(id); if (thumbIO) thumbIO.unobserve(b); b.remove(); }
+    warmThumbs();
+    $('frameCount').textContent = doc.frames.length + (doc.frames.length === 1 ? ' frame' : ' frames');
+    scrollCurrent();
+  }
+  function scrollCurrent() {
+    const el = $('frameList').querySelector('[aria-current="true"]');
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }
+  function markCurrent() {
+    $('frameList').querySelectorAll('.fr').forEach(b => {
+      if (+b.dataset.i === ui.cur) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+    });
+    scrollCurrent();
+  }
+  function goFrame(i) {
+    stopPlay(); cancelAction(); clearSel();
+    const d = i - ui.cur;
+    ui.cur = clamp(i, 0, doc.frames.length - 1);
+    renderStage(); markCurrent(); syncControls(); persistSoon();
+    prefetch(d >= 0 ? 1 : -1);
+  }
+  // Warm up the next frame in the direction you're stepping, so , and . feel instant.
+  let pfT = 0;
+  function prefetch(dir) {
+    if (budget() < 10) return;
+    clearTimeout(pfT);
+    pfT = setTimeout(() => {
+      const run = () => {
+        if (action || ui.playing) return;
+        const n = ui.cur + dir, o = doc.onion;
+        if (n < 0 || n >= doc.frames.length) return;
+        for (const L of doc.layers) if (L.visible) celCanvas(cel(n, L.id));
+        if (o.on) {
+          if (o.before) composite(n - 1, '#d0715c');
+          if (o.after) composite(n + 1, '#6883ba');
+        }
+      };
+      window.requestIdleCallback ? requestIdleCallback(run, { timeout: 500 }) : run();
+    }, 60);
+  }
+  const fl = $('frameList');
+  fl.addEventListener('click', e => { const b = e.target.closest('.fr'); if (b) goFrame(+b.dataset.i); });
+  fl.addEventListener('dragstart', e => { const b = e.target.closest('.fr'); if (b) { e.dataTransfer.setData('text/plain', b.dataset.i); e.dataTransfer.effectAllowed = 'move'; } });
+  fl.addEventListener('dragover', e => { const b = e.target.closest('.fr'); if (b) { e.preventDefault(); fl.querySelectorAll('.drop').forEach(x => x !== b && x.classList.remove('drop')); b.classList.add('drop'); } });
+  fl.addEventListener('dragleave', e => { const b = e.target.closest('.fr'); if (b && !b.contains(e.relatedTarget)) b.classList.remove('drop'); });
+  fl.addEventListener('drop', e => {
+    const b = e.target.closest('.fr'); if (!b) return;
+    e.preventDefault(); b.classList.remove('drop');
+    moveFrame(parseInt(e.dataTransfer.getData('text/plain'), 10), +b.dataset.i);
+  });
+  function moveFrame(from, to) {
+    if (isNaN(from) || from === to || from < 0 || to < 0 || from >= doc.frames.length || to >= doc.frames.length) return;
+    const loopFrame = doc.frames[doc.loopStart];
+    const frames = doc.frames.slice(), [f] = frames.splice(from, 1);
+    frames.splice(to, 0, f);
+    stopPlay(); clearSel(); ui.cur = to;
+    commit(Object.assign({}, doc, { frames, loopStart: Math.max(0, frames.indexOf(loopFrame)) }));
+  }
+  $('fNew').onclick = () => {
+    stopPlay(); clearSel();
+    const frames = doc.frames.slice(); frames.splice(ui.cur + 1, 0, newFrame());
+    const ls = doc.loopStart > ui.cur ? doc.loopStart + 1 : doc.loopStart;
+    ui.cur++;
+    commit(Object.assign({}, doc, { frames, loopStart: ls }));
+  };
+  $('fDup').onclick = () => {
+    stopPlay(); clearSel();
+    const src = doc.frames[ui.cur], frames = doc.frames.slice();
+    frames.splice(ui.cur + 1, 0, newFrame(Object.assign({}, src.cels), src.hold));
+    const ls = doc.loopStart > ui.cur ? doc.loopStart + 1 : doc.loopStart;
+    ui.cur++;
+    commit(Object.assign({}, doc, { frames, loopStart: ls }));
+  };
+  $('fDel').onclick = () => {
+    if (doc.frames.length < 2) return;
+    stopPlay(); clearSel();
+    const frames = doc.frames.slice(); frames.splice(ui.cur, 1);
+    let ls = doc.loopStart > ui.cur ? doc.loopStart - 1 : doc.loopStart;
+    ls = clamp(ls, 0, frames.length - 1);
+    commit(Object.assign({}, doc, { frames, loopStart: ls }));
+    toast('Frame deleted. Undo brings it back.');
+  };
+  $('fUp').onclick = () => moveFrame(ui.cur, ui.cur - 1);
+  $('fDown').onclick = () => moveFrame(ui.cur, ui.cur + 1);
+  function setHold(d) {
+    const f = doc.frames[ui.cur], h = clamp(f.hold + d, 1, 48);
+    if (h === f.hold) return;
+    const frames = doc.frames.slice(); frames[ui.cur] = Object.assign({}, f, { hold: h });
+    commit(Object.assign({}, doc, { frames }));
+  }
+  $('holdMinus').onclick = () => setHold(-1);
+  $('holdPlus').onclick = () => setHold(1);
+  function copyLayerToNext() {
+    stopPlay(); cancelAction(); clearSel();
+    const st = cel(ui.cur, ui.layer);
+    if (!st.length) { toast('This layer is empty on this frame.'); return; }
+    const next = ui.cur + 1;
+    if (next < doc.frames.length && !cel(next, ui.layer).length) {
+      const nd = withCel(next, ui.layer, st);
+      ui.cur = next; commit(nd); toast('Copied into the next frame.');
+    } else {
+      const frames = doc.frames.slice();
+      frames.splice(next, 0, newFrame({ [ui.layer]: st }));
+      const ls = doc.loopStart > ui.cur ? doc.loopStart + 1 : doc.loopStart;
+      ui.cur = next; commit(Object.assign({}, doc, { frames, loopStart: ls }));
+      toast('New frame with a copy of this layer.');
+    }
+  }
+  $('fCopyNext').onclick = copyLayerToNext;
+  $('loopHere').onclick = () => commit(Object.assign({}, doc, { loopStart: doc.loopStart === ui.cur ? 0 : ui.cur }));
+
+  // ================= layers panel =================
+  function renderLayers() {
+    const box = $('layerList'), frag = document.createDocumentFragment();
+    doc.layers.slice().reverse().forEach(L => {
+      const row = document.createElement('div');
+      row.className = 'layer';
+      if (L.id === ui.layer) row.setAttribute('aria-current', 'true');
+      const eye = document.createElement('button');
+      eye.type = 'button'; eye.className = 'ic'; eye.textContent = L.visible ? 'Shown' : 'Hidden';
+      eye.setAttribute('aria-pressed', L.visible); eye.setAttribute('aria-label', `Show ${L.name}`);
+      eye.onclick = () => { L.visible = !L.visible; renderStage(); renderFrames(); renderLayers(); persistSoon(); };
+      const name = document.createElement('button');
+      name.type = 'button'; name.className = 'lname'; name.textContent = L.name;
+      name.onclick = () => { if (ui.layer !== L.id) { cancelAction(); clearSel(); ui.layer = L.id; renderLayers(); syncControls(); renderStage(); } };
+      name.ondblclick = () => {
+        const n = prompt('Layer name', L.name);
+        if (n && n.trim() && n.trim() !== L.name) {
+          commit(Object.assign({}, doc, { layers: doc.layers.map(x => x.id === L.id ? Object.assign({}, x, { name: n.trim().slice(0, 40) }) : x) }));
+        }
+      };
+      const lock = document.createElement('button');
+      lock.type = 'button'; lock.className = 'ic'; lock.textContent = L.locked ? 'Locked' : 'Lock';
+      lock.setAttribute('aria-pressed', L.locked); lock.setAttribute('aria-label', `Lock ${L.name}`);
+      lock.onclick = () => { L.locked = !L.locked; renderLayers(); persistSoon(); };
+      row.append(eye, name, lock);
+      frag.append(row);
+    });
+    box.replaceChildren(frag);
+    const idx = doc.layers.findIndex(l => l.id === ui.layer);
+    $('lUp').disabled = idx >= doc.layers.length - 1;
+    $('lDown').disabled = idx <= 0;
+    $('lDel').disabled = doc.layers.length < 2;
+    $('lOpacity').value = layerOf(ui.layer).opacity;
+  }
+  $('lAdd').onclick = () => {
+    const idx = doc.layers.findIndex(l => l.id === ui.layer);
+    const L = newLayer('Layer ' + (doc.layers.length + 1));
+    const layers = doc.layers.slice(); layers.splice(idx + 1, 0, L);
+    clearSel(); ui.layer = L.id;
+    commit(Object.assign({}, doc, { layers }));
+  };
+  $('lDel').onclick = () => {
+    if (doc.layers.length < 2) return;
+    const L = layerOf(ui.layer);
+    const hasArt = doc.frames.some(f => (f.cels[L.id] || EMPTY).length);
+    if (hasArt && !confirm(`Delete "${L.name}" on every frame?`)) return;
+    clearSel();
+    commit(Object.assign({}, doc, { layers: doc.layers.filter(l => l.id !== L.id) }));
+  };
+  function moveLayer(d) {
+    const i = doc.layers.findIndex(l => l.id === ui.layer), j = i + d;
+    if (j < 0 || j >= doc.layers.length) return;
+    const layers = doc.layers.slice(); [layers[i], layers[j]] = [layers[j], layers[i]];
+    commit(Object.assign({}, doc, { layers }));
+  }
+  $('lUp').onclick = () => moveLayer(1);
+  $('lDown').onclick = () => moveLayer(-1);
+  $('lOpacity').oninput = e => { layerOf(ui.layer).opacity = +e.target.value; renderStage(); };
+  $('lOpacity').onchange = () => { renderFrames(); persistSoon(); };
+
+  // ================= controls sync =================
+  function syncControls() {
+    document.querySelectorAll('[data-tool]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tool === ui.tool));
+    const sk = ui.tool === 'erase' ? 'erase' : 'brush';
+    $('size').value = ui.sizes[sk]; $('sizeV').textContent = Math.round(ui.sizes[sk]);
+    $('brushType').value = ui.brush;
+    $('brushType').hidden = ui.tool !== 'brush';
+    $('smoothWrap').hidden = ui.tool !== 'brush';
+    $('cleanWrap').hidden = ui.tool !== 'brush';
+    $('eraseWrap').hidden = ui.tool !== 'erase';
+    $('eraseWhole').checked = ui.eraseWhole;
+    $('color').value = ui.color;
+    $('undo').disabled = !undoS.length; $('redo').disabled = !redoS.length;
+    $('onionBtn').setAttribute('aria-pressed', doc.onion.on);
+    $('gridBtn').setAttribute('aria-pressed', ui.grid.on);
+    $('gOn').checked = ui.grid.on; $('gLines').checked = ui.grid.lines; $('gSize').value = ui.grid.size;
+    $('gCenter').checked = ui.grid.center; $('gThirds').checked = ui.grid.thirds; $('gSnap').checked = ui.grid.snap;
+    $('oBefore').value = doc.onion.before; $('oAfter').value = doc.onion.after; $('oOpacity').value = doc.onion.opacity;
+    $('introFps').value = doc.introFps; $('introFpsV').textContent = doc.introFps;
+    $('loopFps').value = doc.loopFps; $('loopFpsV').textContent = doc.loopFps;
+    $('holdV').textContent = doc.frames[ui.cur].hold;
+    $('loopHere').textContent = doc.loopStart === ui.cur && ui.cur > 0 ? 'Loop from the start' : 'Loop from here';
+    $('fDel').disabled = doc.frames.length < 2;
+    $('fUp').disabled = ui.cur === 0; $('fDown').disabled = ui.cur === doc.frames.length - 1;
+    $('bgColor').value = doc.bg.color; $('bgTransparent').checked = doc.bg.transparent;
+    $('bgOpacity').value = doc.bg.imgOpacity; $('bgFit').value = doc.bg.fit; $('bgExport').checked = doc.bg.exportBg;
+    $('bgImgRemove').disabled = !media;
+    $('mediaCtl').hidden = !isMoving();
+    if (isMoving()) {
+      const len = isFinite(media.duration) ? ` is ${media.duration.toFixed(1)} s long` : ' loaded';
+      $('mediaInfo').textContent = `${media.kind === 'gif' ? 'GIF' : 'Video'}${len}. Your frames cover ${timelineLength().toFixed(1)} s.`;
+      if (document.activeElement !== $('mOffset')) $('mOffset').value = doc.bg.mediaOffset || 0;
+      $('mLoop').checked = doc.bg.mediaLoop;
+    }
+    $('docW').value = doc.w; $('docH').value = doc.h;
+    const pv = doc.w + 'x' + doc.h;
+    $('sizePreset').value = [...$('sizePreset').options].some(o => o.value === pv) ? pv : 'custom';
+    cv.style.cursor = cursorFor();
+    renderSwatches(); syncSelbar(); syncZoom();
+  }
+  function cursorFor() {
+    if (spaceDown || ui.tool === 'hand') return action && action.kind === 'pan' ? 'grabbing' : 'grab';
+    if (ui.tool === 'erase') return 'none';
+    return 'crosshair';
+  }
+  function renderSwatches() {
+    const box = $('swatches'), frag = document.createDocumentFragment();
+    ui.recent.forEach(c => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.style.background = c; b.setAttribute('aria-label', 'Use color ' + c);
+      b.onclick = () => { ui.color = c; if (ui.tool !== 'brush') ui.tool = 'brush'; syncControls(); persistSoon(); };
+      frag.append(b);
+    });
+    box.replaceChildren(frag);
+  }
+  function addRecent(c) {
+    ui.recent = [c].concat(ui.recent.filter(x => x !== c)).slice(0, 7);
+    renderSwatches();
+  }
+  function setTool(t) { cancelAction(); if (t !== 'lasso') clearSel(); ui.tool = t; syncControls(); renderStage(); persistSoon(); }
+  document.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+  $('brushType').onchange = e => { ui.brush = e.target.value; persistSoon(); };
+  $('size').oninput = e => {
+    const sk = ui.tool === 'erase' ? 'erase' : 'brush';
+    ui.sizes[sk] = +e.target.value; $('sizeV').textContent = Math.round(ui.sizes[sk]); renderStage(); persistSoon();
+  };
+  $('smooth').value = ui.smooth;
+  $('smooth').oninput = e => { ui.smooth = +e.target.value; persistSoon(); };
+  $('cleanup').value = ui.cleanup;
+  $('cleanup').oninput = e => { ui.cleanup = +e.target.value; persistSoon(); };
+  $('eraseWhole').onchange = e => { ui.eraseWhole = e.target.checked; persistSoon(); };
+  $('color').oninput = e => { ui.color = e.target.value; persistSoon(); };
+  $('undo').onclick = undo; $('redo').onclick = redo;
+  $('zoomIn').onclick = () => zoomCenter(1.25);
+  $('zoomOut').onclick = () => zoomCenter(0.8);
+  $('zoomPct').onclick = fit;
+  $('onionBtn').onclick = () => { doc.onion.on = !doc.onion.on; syncControls(); renderStage(); persistSoon(); };
+  $('oBefore').onchange = e => { doc.onion.before = +e.target.value; renderStage(); persistSoon(); };
+  $('oAfter').onchange = e => { doc.onion.after = +e.target.value; renderStage(); persistSoon(); };
+  $('oOpacity').oninput = e => { doc.onion.opacity = +e.target.value; renderStage(); persistSoon(); };
+  $('introFps').oninput = e => { doc.introFps = +e.target.value; $('introFpsV').textContent = e.target.value; persistSoon(); };
+  $('loopFps').oninput = e => { doc.loopFps = +e.target.value; $('loopFpsV').textContent = e.target.value; persistSoon(); };
+  $('bgColor').oninput = e => { doc.bg.color = e.target.value; renderStage(); };
+  $('bgColor').onchange = () => { renderFrames(); persistSoon(); };
+  $('bgTransparent').onchange = e => { doc.bg.transparent = e.target.checked; renderStage(); renderFrames(); persistSoon(); };
+  $('bgOpacity').oninput = e => { doc.bg.imgOpacity = +e.target.value; renderStage(); };
+  $('bgOpacity').onchange = () => { renderFrames(); persistSoon(); };
+  $('bgFit').onchange = e => { doc.bg.fit = e.target.value; renderStage(); renderFrames(); persistSoon(); };
+  $('bgExport').onchange = e => { doc.bg.exportBg = e.target.checked; $('exBg').checked = e.target.checked; persistSoon(); };
+  $('bgImgBtn').onclick = () => $('bgImgFile').click();
+  $('bgImgFile').onchange = e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+    stopPlay();
+    if (f.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(f.name)) { setBgVideo(f); return; }
+    const r = new FileReader();
+    r.onload = () => setBgData(r.result);
+    r.readAsDataURL(f);
+  };
+  $('bgImgRemove').onclick = () => { stopPlay(); setBgData(null); };
+  $('mOffset').onchange = e => { doc.bg.mediaOffset = Math.max(0, +e.target.value || 0); afterBg(); persistSoon(); };
+  $('mLoop').onchange = e => { doc.bg.mediaLoop = e.target.checked; afterBg(); persistSoon(); };
+  $('mFill').onclick = () => {
+    if (!isMoving()) return;
+    if (!isFinite(media.duration)) { toast("This video doesn't say how long it is, so add frames by hand."); return; }
+    const need = media.duration - (doc.bg.mediaOffset || 0);
+    const frames = doc.frames.slice();
+    let t = timelineLength(), added = 0;
+    while (t < need - 1e-6 && frames.length < 400) { frames.push(newFrame()); t += 1 / doc.loopFps; added++; }
+    if (!added) { toast('Your frames already cover the whole background.'); return; }
+    commit(Object.assign({}, doc, { frames }));
+    toast(`Added ${added} frames.`);
+  };
+
+  $('sizePreset').onchange = e => {
+    if (e.target.value === 'custom') return;
+    const [w, h] = e.target.value.split('x').map(Number);
+    $('docW').value = w; $('docH').value = h;
+  };
+  $('applySize').onclick = () => {
+    const nw = clamp(Math.round(+$('docW').value || doc.w), 64, 4096), nh = clamp(Math.round(+$('docH').value || doc.h), 64, 4096);
+    if (nw === doc.w && nh === doc.h) return;
+    const k = Math.min(nw / doc.w, nh / doc.h), ox = (nw - doc.w * k) / 2, oy = (nh - doc.h * k) / 2;
+    const map = new Map();
+    const tx = arr => {
+      if (!arr.length) return arr;
+      let m = map.get(arr);
+      if (!m) { m = arr.map(s => Object.assign({}, s, { size: s.size * k, pts: s.pts.map(p => [ox + p[0] * k, oy + p[1] * k, p[2]]) })); map.set(arr, m); }
+      return m;
+    };
+    const frames = doc.frames.map(f => { const cels = {}; for (const id in f.cels) cels[id] = tx(f.cels[id]); return Object.assign({}, f, { r: uid(), cels }); });
+    clearSel(); celLRU.clear(); compLRU.clear();
+    commit(Object.assign({}, doc, { w: nw, h: nh, frames }));
+    fit();
+  };
+  $('newProject').onclick = () => createProject();
+  const side = $('side');
+  $('panelsBtn').onclick = () => { const o = side.classList.toggle('open'); $('panelsBtn').setAttribute('aria-expanded', o); };
+  $('panelsClose').onclick = () => { side.classList.remove('open'); $('panelsBtn').setAttribute('aria-expanded', false); };
+
+  // ================= selection =================
+  function boxOf(strokes, idx) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    idx.forEach(i => {
+      const s = strokes[i], r = s.size / 2;
+      for (const p of s.pts) { x0 = Math.min(x0, p[0] - r); y0 = Math.min(y0, p[1] - r); x1 = Math.max(x1, p[0] + r); y1 = Math.max(y1, p[1] + r); }
+    });
+    return { x0, y0, x1, y1 };
+  }
+  function makeSel(idx) {
+    if (!idx.size) { clearSel(); return; }
+    sel = { fi: ui.cur, lid: ui.layer, idx, box: boxOf(cel(ui.cur, ui.layer), idx) };
+    syncSelbar();
+  }
+  function clearSel() { sel = null; syncSelbar(); }
+  function syncSelbar() {
+    const show = ui.tool === 'lasso' || !!sel;
+    $('selbar').hidden = !show;
+    ['sCopy', 'sCut', 'sCenter', 'sFlip', 'sDel', 'sDone'].forEach(id => $(id).disabled = !sel);
+    $('sPaste').disabled = !clip;
+  }
+  function pip(x, y, poly) {
+    let ins = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+      if (((yi > y) !== (yj > y)) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) ins = !ins;
+    }
+    return ins;
+  }
+  function selectAll() {
+    if (ui.tool !== 'lasso') setTool('lasso');
+    const st = cel(ui.cur, ui.layer);
+    makeSel(new Set(st.map((_, i) => i)));
+    renderStage();
+  }
+  function lockedCheck() {
+    const L = layerOf(ui.layer);
+    if (L.locked) { toast(`"${L.name}" is locked.`); return true; }
+    if (!L.visible) { toast(`"${L.name}" is hidden.`); return true; }
+    return false;
+  }
+  function copySel() {
+    const st = cel(ui.cur, ui.layer);
+    clip = sel ? [...sel.idx].sort((a, b) => a - b).map(i => st[i]) : st.slice();
+    syncSelbar();
+    toast(clip.length ? (sel ? 'Copied selection.' : 'Copied this layer.') : 'Nothing to copy on this layer.');
+    if (!clip.length) clip = null;
+  }
+  function deleteSel() {
+    if (!sel || lockedCheck()) return;
+    const st = cel(ui.cur, ui.layer).filter((_, i) => !sel.idx.has(i));
+    clearSel(); commit(withCel(ui.cur, ui.layer, st));
+  }
+  function cutSel() {
+    if (lockedCheck()) return;
+    if (!sel) { copySel(); if (clip) commit(withCel(ui.cur, ui.layer, [])); return; }
+    copySel(); deleteSel();
+  }
+  function paste() {
+    if (!clip || lockedCheck()) return;
+    const st = cel(ui.cur, ui.layer), start = st.length;
+    if (ui.tool !== 'lasso') { ui.tool = 'lasso'; }
+    commit(withCel(ui.cur, ui.layer, st.concat(clip)));
+    makeSel(new Set(clip.map((_, i) => start + i)));
+    syncControls(); renderStage();
+  }
+  function flipSel() {
+    if (!sel || lockedCheck()) return;
+    const b = sel.box, xf = { type: 'flip', cx: (b.x0 + b.x1) / 2 };
+    const st = cel(ui.cur, ui.layer).map((s, i) => sel.idx.has(i) ? xfStroke(s, xf) : s);
+    const idx = sel.idx;
+    commit(withCel(ui.cur, ui.layer, st)); makeSel(idx); renderStage();
+  }
+  function moveSel(dx, dy) {
+    if (!sel || lockedCheck() || (!dx && !dy)) return;
+    const xf = { type: 'move', dx, dy }, idx = sel.idx;
+    commit(withCel(ui.cur, ui.layer, cel(ui.cur, ui.layer).map((s, i) => idx.has(i) ? xfStroke(s, xf) : s)));
+    makeSel(idx); renderStage();
+  }
+  function centerSel() {
+    if (!sel) return;
+    const b = sel.box;
+    const dx = doc.w / 2 - (b.x0 + b.x1) / 2, dy = doc.h / 2 - (b.y0 + b.y1) / 2;
+    if (Math.abs(dx) < 0.25 && Math.abs(dy) < 0.25) { toast('Already centered.'); return; }
+    moveSel(dx, dy);
+  }
+  $('sCenter').onclick = centerSel;
+  $('centerAll').onclick = () => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    doc.frames.forEach(f => doc.layers.forEach(L => (f.cels[L.id] || EMPTY).forEach(st => {
+      const r = st.size / 2;
+      st.pts.forEach(q => { x0 = Math.min(x0, q[0] - r); y0 = Math.min(y0, q[1] - r); x1 = Math.max(x1, q[0] + r); y1 = Math.max(y1, q[1] + r); });
+    })));
+    if (!isFinite(x0)) { toast('Draw something first.'); return; }
+    const dx = doc.w / 2 - (x0 + x1) / 2, dy = doc.h / 2 - (y0 + y1) / 2;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { toast('Your artwork is already centered.'); return; }
+    const xf = { type: 'move', dx, dy }, map = new Map();
+    const tx = arr => { if (!arr.length) return arr; let m = map.get(arr); if (!m) { m = arr.map(st => xfStroke(st, xf)); map.set(arr, m); } return m; };
+    const frames = doc.frames.map(f => { const cels = {}; for (const id in f.cels) cels[id] = tx(f.cels[id]); return Object.assign({}, f, { r: uid(), cels }); });
+    stopPlay(); clearSel();
+    commit(Object.assign({}, doc, { frames }));
+    toast('Centered across every frame.');
+  };
+  const gridSet = (k, v) => { ui.grid[k] = v; syncControls(); renderStage(); persistSoon(); };
+  $('gridBtn').onclick = () => gridSet('on', !ui.grid.on);
+  $('gOn').onchange = e => gridSet('on', e.target.checked);
+  $('gLines').onchange = e => { if (e.target.checked) ui.grid.on = true; gridSet('lines', e.target.checked); };
+  $('gSize').onchange = e => gridSet('size', +e.target.value);
+  $('gCenter').onchange = e => { if (e.target.checked) ui.grid.on = true; gridSet('center', e.target.checked); };
+  $('gThirds').onchange = e => { if (e.target.checked) ui.grid.on = true; gridSet('thirds', e.target.checked); };
+  $('gSnap').onchange = e => gridSet('snap', e.target.checked);
+  $('sCopy').onclick = copySel; $('sCut').onclick = cutSel; $('sPaste').onclick = paste;
+  $('sFlip').onclick = flipSel; $('sDel').onclick = deleteSel;
+  $('sDone').onclick = () => { clearSel(); renderStage(); };
+
+  // ================= input =================
+  const touches = new Map();
+  let penSeen = false, spaceDown = false, gesture = null, tap = null, sm = null, lazy = null, smP = 0.6;
+  const pressureOf = e => (e.pointerType === 'pen' && e.pressure > 0 ? e.pressure : 0.6);
+  function local(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  function toDoc(e) { const l = local(e); return [(l[0] - ui.view.x) / ui.view.s, (l[1] - ui.view.y) / ui.view.s]; }
+
+  function cancelAction() {
+    live.stroke = null; live.strokes = null; live.lasso = null; live.xf = null; live.erased = false; live.guides = null;
+    action = null;
+  }
+  function startGesture() {
+    const pts = [...touches.values()];
+    const r = cv.getBoundingClientRect();
+    const c = [(pts[0].x + pts[1].x) / 2 - r.left, (pts[0].y + pts[1].y) / 2 - r.top];
+    gesture = {
+      d0: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1, s0: ui.view.s,
+      doc: [(c[0] - ui.view.x) / ui.view.s, (c[1] - ui.view.y) / ui.view.s]
+    };
+  }
+  function updateGesture() {
+    const pts = [...touches.values()]; if (pts.length < 2) return;
+    const r = cv.getBoundingClientRect();
+    const c = [(pts[0].x + pts[1].x) / 2 - r.left, (pts[0].y + pts[1].y) / 2 - r.top];
+    const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    const ns = clamp(gesture.s0 * d / gesture.d0, 0.02, 24);
+    ui.view.s = ns; ui.view.x = c[0] - gesture.doc[0] * ns; ui.view.y = c[1] - gesture.doc[1] * ns;
+    requestRender(); syncZoom();
+  }
+
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  // Safari sends gesture events for pinches. On iPad the touch handlers above already zoom the
+  // canvas, so these only zoom for a Mac trackpad (no touches down) and otherwise just stop the
+  // whole page from zooming.
+  let gs = null;
+  document.addEventListener('gesturestart', e => { e.preventDefault(); gs = !touches.size && e.target === cv ? { s: ui.view.s } : null; });
+  document.addEventListener('gesturechange', e => {
+    e.preventDefault();
+    if (gs && !touches.size) { const l = local(e); zoomAt(gs.s * e.scale / ui.view.s, l[0], l[1]); }
+  });
+  document.addEventListener('gestureend', e => { e.preventDefault(); gs = null; });
+
+  cv.addEventListener('pointerdown', e => {
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    if (e.pointerType === 'pen') { penSeen = true; tap = null; }
+    if (e.pointerType === 'touch') {
+      // A palm landing while the pencil is drawing: ignore it completely, so the stroke carries on.
+      if (action && action.pen) return;
+      if (!touches.size) tap = { max: 0, t: performance.now(), moved: false };
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
+      if (tap) tap.max = Math.max(tap.max, touches.size);
+      if (touches.size >= 2) {
+        if (action && action.kind !== 'pan') { cancelAction(); renderStage(); }
+        action = null; startGesture(); return;
+      }
+      if (penSeen) { if (!action) action = { kind: 'pan', pid: e.pointerId, last: [e.clientX, e.clientY] }; return; }
+    }
+    if (action) return;
+    if (e.pointerType === 'mouse' && e.button === 1 || spaceDown || ui.tool === 'hand') {
+      action = { kind: 'pan', pid: e.pointerId, last: [e.clientX, e.clientY] }; cv.style.cursor = cursorFor(); return;
+    }
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    stopPlay();
+    beginTool(e);
+    if (action) action.pen = e.pointerType === 'pen';
+  });
+
+  cv.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch' && touches.has(e.pointerId)) {
+      const t = touches.get(e.pointerId); t.x = e.clientX; t.y = e.clientY;
+      if (tap && Math.hypot(t.x - t.sx, t.y - t.sy) > 12) tap.moved = true;
+      if (gesture) { updateGesture(); return; }
+    }
+    ui.hover = toDoc(e); ui.hoverTouch = e.pointerType === 'touch';
+    if (!action) { if (ui.tool === 'erase') requestRender(); return; }
+    if (action.pid !== e.pointerId) return;
+    if (action.kind === 'pan') {
+      ui.view.x += e.clientX - action.last[0]; ui.view.y += e.clientY - action.last[1];
+      action.last = [e.clientX, e.clientY]; requestRender(); return;
+    }
+    moveTool(e);
+  });
+
+  function pointerEnd(e) {
+    if (e.pointerType === 'touch') {
+      touches.delete(e.pointerId);
+      if (!touches.size) {
+        if (tap && !tap.moved && performance.now() - tap.t < 320) {
+          if (tap.max === 2) undo(); else if (tap.max === 3) redo();
+        }
+        tap = null;
+      }
+      if (gesture) { if (touches.size < 2) gesture = null; return; }
+    }
+    if (!action || action.pid !== e.pointerId) return;
+    if (e.type === 'pointercancel' && action.kind !== 'pan') { cancelAction(); renderStage(); return; }
+    endTool();
+    action = null;
+    cv.style.cursor = cursorFor();
+  }
+  cv.addEventListener('pointerup', pointerEnd);
+  cv.addEventListener('pointercancel', pointerEnd);
+  cv.addEventListener('pointerleave', () => { if (!action && ui.tool === 'erase') { ui.hover = null; requestRender(); } });
+
+  cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) { const l = local(e); zoomAt(Math.exp(-e.deltaY * 0.01), l[0], l[1]); }
+    else { ui.view.x -= e.deltaX; ui.view.y -= e.deltaY; requestRender(); }
+  }, { passive: false });
+
+  function hitHandle(p) {
+    if (!sel) return -1;
+    const r = 12 / ui.view.s;
+    const cs = corners(sel.box);
+    for (let i = 0; i < 4; i++) if (Math.abs(p[0] - cs[i][0]) < r && Math.abs(p[1] - cs[i][1]) < r) return i;
+    return -1;
+  }
+  const inBox = (p, b) => p[0] >= b.x0 && p[0] <= b.x1 && p[1] >= b.y0 && p[1] <= b.y1;
+
+  function beginTool(e) {
+    const p = toDoc(e);
+    if (ui.tool === 'brush') {
+      if (lockedCheck()) return;
+      sm = p; lazy = p; smP = pressureOf(e);
+      live.stroke = { brush: ui.brush, color: ui.color, size: ui.sizes.brush, pts: [[p[0], p[1], smP]] };
+      action = { kind: 'draw', pid: e.pointerId };
+      renderStage();
+    } else if (ui.tool === 'erase') {
+      if (lockedCheck()) return;
+      live.strokes = cel(ui.cur, ui.layer).slice(); live.erased = false;
+      action = { kind: 'erase', pid: e.pointerId, last: p };
+      eraseSeg(p, p); renderStage();
+    } else if (ui.tool === 'lasso') {
+      if (sel && sel.fi === ui.cur && sel.lid === ui.layer) {
+        const h = hitHandle(p);
+        if (h >= 0 || inBox(p, sel.box)) {
+          if (lockedCheck()) return;
+          const b = sel.box;
+          action = h >= 0
+            ? { kind: 'scale', pid: e.pointerId, start: p, c: [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2] }
+            : { kind: 'move', pid: e.pointerId, start: p };
+          return;
+        }
+      }
+      clearSel();
+      live.lasso = [p]; action = { kind: 'lasso', pid: e.pointerId };
+      renderStage();
+    }
+  }
+
+  function segDist(q, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+    let t = l2 ? ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2 : 0;
+    t = clamp(t, 0, 1);
+    return Math.hypot(q[0] - a[0] - t * dx, q[1] - a[1] - t * dy);
+  }
+  function eraseSeg(a, b) {
+    const r = ui.sizes.erase / 2, out = [];
+    let changed = false;
+    const minx = Math.min(a[0], b[0]) - r, maxx = Math.max(a[0], b[0]) + r, miny = Math.min(a[1], b[1]) - r, maxy = Math.max(a[1], b[1]) + r;
+    for (const s of live.strokes) {
+      const pad = s.size / 2;
+      let hit = false;
+      for (const q of s.pts) {
+        if (q[0] < minx - pad || q[0] > maxx + pad || q[1] < miny - pad || q[1] > maxy + pad) continue;
+        if (segDist(q, a, b) < r + (ui.eraseWhole ? pad : 0)) { hit = true; break; }
+      }
+      if (!hit) { out.push(s); continue; }
+      changed = true;
+      if (ui.eraseWhole) continue;
+      let run = [];
+      for (const q of s.pts) {
+        if (segDist(q, a, b) < r) { if (run.length) out.push(Object.assign({}, s, { pts: run })); run = []; }
+        else run.push(q);
+      }
+      if (run.length) out.push(Object.assign({}, s, { pts: run }));
+    }
+    if (changed) { live.strokes = out; live.erased = true; }
+  }
+
+  function moveTool(e) {
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    const list = evs.length ? evs : [e];
+    if (action.kind === 'draw') {
+      // Lazy rope (like Procreate's StreamLine): the brush only follows once the pen
+      // pulls the rope tight, which swallows hand tremor. A light average rounds off the rest.
+      const rope = ui.smooth * 24 / ui.view.s, k = ui.smooth * 0.6, minD = 0.6 / ui.view.s;
+      for (const ev of list) {
+        const p = toDoc(ev);
+        action.raw = p;
+        const dx = p[0] - lazy[0], dy = p[1] - lazy[1], d = Math.hypot(dx, dy);
+        if (d > rope) { const m = (d - rope) / d; lazy = [lazy[0] + dx * m, lazy[1] + dy * m]; }
+        sm = [sm[0] + (lazy[0] - sm[0]) * (1 - k), sm[1] + (lazy[1] - sm[1]) * (1 - k)];
+        smP += (pressureOf(ev) - smP) * (0.35 - ui.smooth * 0.2);
+        const pts = live.stroke.pts, lp = pts[pts.length - 1];
+        if (Math.hypot(sm[0] - lp[0], sm[1] - lp[1]) > minD) pts.push([sm[0], sm[1], smP]);
+      }
+      requestRender();
+    } else if (action.kind === 'erase') {
+      for (const ev of list) { const p = toDoc(ev); eraseSeg(action.last, p); action.last = p; }
+      requestRender();
+    } else if (action.kind === 'lasso') {
+      const p = toDoc(e), l = live.lasso[live.lasso.length - 1];
+      if (Math.hypot(p[0] - l[0], p[1] - l[1]) > 2 / ui.view.s) live.lasso.push(p);
+      requestRender();
+    } else if (action.kind === 'move') {
+      const p = toDoc(e);
+      let dx = p[0] - action.start[0], dy = p[1] - action.start[1];
+      live.guides = null;
+      if (ui.grid.snap && !e.altKey && sel) {
+        const b = sel.box, th = 8 / ui.view.s;
+        const sxs = snap1([b.x0 + dx, (b.x0 + b.x1) / 2 + dx, b.x1 + dx], snapTargets(doc.w), th);
+        const sys = snap1([b.y0 + dy, (b.y0 + b.y1) / 2 + dy, b.y1 + dy], snapTargets(doc.h), th);
+        if (sxs) dx += sxs.d;
+        if (sys) dy += sys.d;
+        live.guides = { x: sxs ? sxs.t : null, y: sys ? sys.t : null };
+      }
+      live.xf = { type: 'move', dx, dy };
+      requestRender();
+    } else if (action.kind === 'scale') {
+      const p = toDoc(e), c = action.c;
+      const d0 = Math.hypot(action.start[0] - c[0], action.start[1] - c[1]) || 1;
+      live.xf = { type: 'scale', s: clamp(Math.hypot(p[0] - c[0], p[1] - c[1]) / d0, 0.05, 20), cx: c[0], cy: c[1] };
+      requestRender();
+    }
+  }
+
+  // On lift: resample the stroke evenly, then blur the path so wobbles melt away.
+  // The blur window shrinks near the ends, so strokes still start and stop where you drew them.
+  function cleanStroke(pts, amt) {
+    if (amt <= 0 || pts.length < 4) return pts;
+    const step = 1.5, out = [pts[0].slice()];
+    let acc = 0;
+    for (let i = 1; i < pts.length; i++) {
+      let a = pts[i - 1]; const b = pts[i];
+      let seg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      while (seg > 0 && acc + seg >= step) {
+        const t = (step - acc) / seg;
+        const q = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+        out.push(q); a = q; acc = 0;
+        seg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      }
+      acc += seg;
+    }
+    out.push(pts[pts.length - 1].slice());
+    const n = out.length, W = Math.round(amt * 16);
+    if (W < 1 || n < 4) return out;
+    const res = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const w = Math.min(W, i, n - 1 - i), sig = w / 2 + 0.5;
+      let X = 0, Y = 0, P = 0, T = 0;
+      for (let j = -w; j <= w; j++) {
+        const g = Math.exp(-(j * j) / (2 * sig * sig)), q = out[i + j];
+        X += q[0] * g; Y += q[1] * g; P += q[2] * g; T += g;
+      }
+      res[i] = [X / T, Y / T, P / T];
+    }
+    const thin = [res[0]];
+    for (let i = 1; i < n - 1; i++) {
+      const l = thin[thin.length - 1];
+      if (Math.hypot(res[i][0] - l[0], res[i][1] - l[1]) >= 2) thin.push(res[i]);
+    }
+    thin.push(res[n - 1]);
+    return thin;
+  }
+
+  function snapTargets(L) {
+    const G = ui.grid, t = [0, L / 2, L];
+    if (G.on && G.thirds) t.push(L / 3, 2 * L / 3);
+    if (G.on && G.lines) for (let v = G.size; v < L; v += G.size) t.push(v);
+    return t;
+  }
+  function snap1(vals, targets, th) {
+    let best = null;
+    for (const v of vals) for (const t of targets) {
+      const d = t - v;
+      if (Math.abs(d) < th && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, t };
+    }
+    return best;
+  }
+
+  function endTool() {
+    if (!action) return;
+    if (action.kind === 'draw' && live.stroke) {
+      const s = live.stroke;
+      if (action.raw) {
+        const l = s.pts[s.pts.length - 1];
+        if (Math.hypot(action.raw[0] - l[0], action.raw[1] - l[1]) > 1) s.pts.push([action.raw[0], action.raw[1], l[2]]);
+      }
+      s.pts = cleanStroke(s.pts, ui.cleanup);
+      const p = s.pts, n = p.length;
+      if (s.brush !== 'marker' && n > 3) {
+        const tail = Math.min(8, n - 1);
+        for (let i = 0; i < tail; i++) p[n - 1 - i][2] *= 0.35 + 0.65 * (i / tail);
+      }
+      live.stroke = null;
+      addRecent(s.color);
+      commit(withCel(ui.cur, ui.layer, cel(ui.cur, ui.layer).concat([s])));
+    } else if (action.kind === 'erase') {
+      const st = live.strokes, did = live.erased;
+      live.strokes = null; live.erased = false;
+      if (did) commit(withCel(ui.cur, ui.layer, st)); else renderStage();
+    } else if (action.kind === 'lasso') {
+      const poly = live.lasso; live.lasso = null;
+      const idx = new Set();
+      if (poly && poly.length > 2) {
+        cel(ui.cur, ui.layer).forEach((s, i) => {
+          const step = Math.max(1, Math.floor(s.pts.length / 24));
+          let n = 0, inside = 0;
+          for (let j = 0; j < s.pts.length; j += step) { n++; if (pip(s.pts[j][0], s.pts[j][1], poly)) inside++; }
+          if (n && inside / n >= 0.5) idx.add(i);
+        });
+      }
+      makeSel(idx); renderStage();
+    } else if ((action.kind === 'move' || action.kind === 'scale') && sel) {
+      const xf = live.xf; live.xf = null; live.guides = null;
+      if (xf && (xf.type === 'move' ? (xf.dx || xf.dy) : xf.s !== 1)) {
+        const idx = sel.idx;
+        commit(withCel(ui.cur, ui.layer, cel(ui.cur, ui.layer).map((s, i) => idx.has(i) ? xfStroke(s, xf) : s)));
+        makeSel(idx);
+      }
+      renderStage();
+    }
+  }
+
+  // ================= keyboard =================
+  addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, select, textarea') && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
+    if (document.querySelector('dialog[open]')) return;
+    const mod = e.metaKey || e.ctrlKey, k = e.key.toLowerCase();
+    if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if (mod && k === 'y') { e.preventDefault(); redo(); return; }
+    if (mod && k === 'c') { e.preventDefault(); copySel(); return; }
+    if (mod && k === 'x') { e.preventDefault(); cutSel(); return; }
+    if (mod && k === 'v') { e.preventDefault(); paste(); return; }
+    if (mod && k === 'a') { e.preventDefault(); selectAll(); return; }
+    if (mod) return;
+    if (e.key === ' ') { e.preventDefault(); if (!spaceDown) { spaceDown = true; cv.style.cursor = cursorFor(); } return; }
+    if (e.target.closest && e.target.closest('input')) return;
+    const sk = ui.tool === 'erase' ? 'erase' : 'brush';
+    switch (e.key) {
+      case 'b': case 'B': setTool('brush'); break;
+      case 'e': case 'E': setTool('erase'); break;
+      case 'l': case 'L': setTool('lasso'); break;
+      case 'h': case 'H': setTool('hand'); break;
+      case '[': ui.sizes[sk] = clamp(ui.sizes[sk] / 1.15, 1, 200); syncControls(); renderStage(); persistSoon(); break;
+      case ']': ui.sizes[sk] = clamp(ui.sizes[sk] * 1.15, 1, 200); syncControls(); renderStage(); persistSoon(); break;
+      case ',': goFrame(ui.cur - 1); break;
+      case '.': goFrame(ui.cur + 1); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'ArrowRight': case 'ArrowDown': {
+        e.preventDefault();
+        if (sel && sel.fi === ui.cur && sel.lid === ui.layer) {
+          const st = e.shiftKey ? 10 : 1;
+          moveSel(e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0, e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0);
+        } else goFrame(ui.cur + (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1));
+        break;
+      }
+      case 'g': case 'G': $('gridBtn').click(); break;
+      case 'n': $('fNew').click(); break;
+      case 'N': copyLayerToNext(); break;
+      case 'd': case 'D': $('fDup').click(); break;
+      case 'o': case 'O': $('onionBtn').click(); break;
+      case 'Enter': e.preventDefault(); togglePlay(); break;
+      case 'Escape': cancelAction(); clearSel(); renderStage(); break;
+      case 'Delete': case 'Backspace': if (sel) { e.preventDefault(); deleteSel(); } break;
+      case '0': fit(); break;
+      case '=': case '+': zoomCenter(1.25); break;
+      case '-': case '_': zoomCenter(0.8); break;
+    }
+  });
+  addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; cv.style.cursor = cursorFor(); } });
+  addEventListener('blur', () => { spaceDown = false; });
+
+  // ================= playback =================
+  let lastT = 0;
+  let prepToken = 0;
+  function togglePlay() { ui.playing || ui.preparing ? stopPlay() : startPlay(); }
+  async function startPlay() {
+    cancelAction(); clearSel();
+    $('playLabel').textContent = 'Stop'; $('playtag').hidden = false;
+    if (media && media.kind === 'video') {
+      const ts = [];
+      doc.frames.forEach((f, i) => { for (let s2 = 0; s2 < f.hold; s2++) ts.push(wrapT(bgTime(i, s2))); });
+      const uniq = [...new Map(ts.map(t => [vKey(t), t])).values()].slice(0, vBudget());
+      const token = ++prepToken;
+      ui.preparing = true;
+      let done = 0;
+      $('playtag').textContent = `Preparing video 0/${uniq.length}`;
+      await Promise.all(uniq.map(t => videoRequest(t, true).then(() => {
+        done++; if (token === prepToken) $('playtag').textContent = `Preparing video ${done}/${uniq.length}`;
+      })));
+      if (token !== prepToken || !ui.preparing) return;
+      ui.preparing = false;
+    }
+    ui.playing = true; ui.playIdx = 0; ui.playHold = 0; lastT = 0;
+  }
+  function stopPlay() {
+    if (!ui.playing && !ui.preparing) return;
+    prepToken++; ui.preparing = false;
+    ui.playing = false; $('playLabel').textContent = 'Play'; $('playtag').hidden = true; renderStage();
+  }
+  $('play').onclick = togglePlay;
+  function tick(t) {
+    requestAnimationFrame(tick);
+    if (!ui.playing) return;
+    const fps = ui.playIdx < doc.loopStart ? doc.introFps : doc.loopFps, step = 1000 / fps;
+    // Keep a steady clock: 24 fps on a 60 Hz screen alternates 2 and 3 refreshes per drawing
+    // instead of rounding every frame up to 3 (which played at 20 fps).
+    if (lastT && t - lastT < step - 4) return;
+    lastT = lastT && t - lastT < step * 2 ? lastT + step : t;
+    renderStage();
+    $('playtag').textContent = `Frame ${ui.playIdx + 1} of ${doc.frames.length}${ui.playIdx < doc.loopStart ? ', intro' : ''}`;
+    const f = doc.frames[ui.playIdx];
+    if (++ui.playHold >= (f ? f.hold : 1)) {
+      ui.playHold = 0;
+      ui.playIdx = ui.playIdx < doc.frames.length - 1 ? ui.playIdx + 1 : doc.loopStart;
+    }
+  }
+  requestAnimationFrame(tick);
+
+  // ================= export =================
+  let toastT;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200);
+  }
+  async function saveFile(filename, data) {
+    const ext = (filename.split('.').pop() || '').toLowerCase();
+    const type = { json: 'application/json', html: 'text/html', png: 'image/png', zip: 'application/zip', mp4: 'video/mp4', webm: 'video/webm' }[ext] || '';
+    const blob = data instanceof Blob && data.type ? data : new Blob([data], { type });
+    if (IOS) { const shared = await shareFile(filename, blob); if (shared !== null) return shared; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    return true;
+  }
+  // iOS, especially the Home Screen app, doesn't reliably download files from a link, so hand the
+  // file to the share sheet (which has Save to Files). Returns null when sharing isn't possible.
+  async function shareFile(filename, blob) {
+    let file;
+    try { file = new File([blob], filename, { type: blob.type }); } catch (e) { return null; }
+    if (!navigator.canShare || !navigator.canShare({ files: [file] })) return null;
+    const share = async () => {
+      try { await navigator.share({ files: [file] }); return true; }
+      catch (err) { return err && err.name === 'NotAllowedError' ? 'later' : false; }
+    };
+    const r = await share();
+    if (r !== 'later') return r;
+    // Building the file took long enough that the original tap no longer counts, so ask for one more.
+    return new Promise(res => {
+      // An open modal dialog makes the rest of the page untappable, so show the bar inside it.
+      const bar = $('readyBar'), done = v => { bar.hidden = true; document.body.append(bar); res(v); };
+      (document.querySelector('dialog[open]') || document.body).append(bar);
+      $('readyText').textContent = `${filename} is ready`;
+      $('readySave').onclick = async () => { const v = await share(); done(v === true); };
+      $('readyLater').onclick = () => done(false);
+      bar.hidden = false; $('readySave').focus();
+    });
+  }
+  const hasArt = () => doc.frames.some(f => doc.layers.some(L => L.visible && (f.cels[L.id] || EMPTY).length));
+  async function exportFrame(fi, scale, withBg, dt) {
+    const w = Math.round(doc.w * scale), h = Math.round(doc.h * scale);
+    const c = mk(w, h), x = c.getContext('2d');
+    if (withBg) {
+      const src = await bgSourceExact(fi, dt || 0);
+      x.save(); x.scale(scale, scale); drawBg(x, doc.w, doc.h, false, true, src); x.restore();
+    }
+    for (const L of doc.layers) {
+      if (!L.visible) continue;
+      const st = cel(fi, L.id); if (!st.length) continue;
+      const t = mk(w, h), tx = t.getContext('2d');
+      tx.scale(scale, scale);
+      for (const s of st) drawStroke(tx, s);
+      x.globalAlpha = L.opacity; x.drawImage(t, 0, 0); x.globalAlpha = 1;
+    }
+    return c;
+  }
+  const toBlob = c => new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('encode')), 'image/png'));
+  const exScale = () => +$('exScale').value;
+  const exBg = () => $('exBg').checked;
+
+  async function buildSheet() {
+    const s = exScale(), fw = Math.round(doc.w * s), fh = Math.round(doc.h * s), n = doc.frames.length;
+    const MAXD = 16384, MAXA = 16777216;
+    let cols = clamp(Math.floor(MAXD / fw), 1, n);
+    cols = Math.min(cols, Math.ceil(Math.sqrt(n * fh / fw) * 1.6) || 1, n);
+    cols = Math.max(1, cols);
+    const rows = Math.ceil(n / cols);
+    if (cols * fw > MAXD || rows * fh > MAXD || cols * fw * rows * fh > MAXA) return null;
+    const c = mk(cols * fw, rows * fh), x = c.getContext('2d');
+    for (let i = 0; i < n; i++) x.drawImage(await exportFrame(i, s, exBg()), (i % cols) * fw, Math.floor(i / cols) * fh);
+    return { c, cols, rows, fw, fh, n };
+  }
+  const tooBig = () => toast('Too many frames at this size for one image. Try 50% scale, or export a PNG sequence.');
+
+  $('exSprite').onclick = async () => {
+    if (!hasArt()) { toast('Draw something first.'); return; }
+    const sh = await buildSheet(); if (!sh) return tooBig();
+    await saveFile(`${slug()}-sprite.png`, await toBlob(sh.c));
+  };
+
+  $('exHtml').onclick = async () => {
+    if (!hasArt()) { toast('Draw something first.'); return; }
+    const sh = await buildSheet(); if (!sh) return tooBig();
+    const url = sh.c.toDataURL('image/png');
+    const holds = JSON.stringify(doc.frames.map(f => f.hold));
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Line boil</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0b0c; }
+
+  /* Copy from here into your site. Set the width however you like. */
+  .boil {
+    width: min(90vw, ${sh.fw}px);
+    aspect-ratio: ${sh.fw} / ${sh.fh};
+    background: url(${url}) 0 0 / ${sh.cols * 100}% ${sh.rows * 100}% no-repeat;
+  }
+</style>
+</head>
+<body>
+<div class="boil" role="img" aria-label="Hand-drawn animation"></div>
+<script>
+(() => {
+  const COLS = ${sh.cols}, ROWS = ${sh.rows}, FRAMES = ${sh.n};
+  const HOLDS = ${holds}, LOOP_START = ${doc.loopStart}, INTRO_FPS = ${doc.introFps}, LOOP_FPS = ${doc.loopFps};
+  document.querySelectorAll('.boil').forEach(el => {
+    const show = i => {
+      const c = i % COLS, r = Math.floor(i / COLS);
+      el.style.backgroundPosition = (COLS > 1 ? c / (COLS - 1) * 100 : 0) + '% ' + (ROWS > 1 ? r / (ROWS - 1) * 100 : 0) + '%';
+    };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { show(FRAMES - 1); return; }
+    let i = 0;
+    const step = () => {
+      show(i);
+      const fps = i < LOOP_START ? INTRO_FPS : LOOP_FPS;
+      const wait = HOLDS[i] * 1000 / fps;
+      i = i < FRAMES - 1 ? i + 1 : LOOP_START;
+      setTimeout(step, wait);
+    };
+    step();
+  });
+})();
+<\/script>
+</body>
+</html>`;
+    await saveFile(`${slug()}-player.html`, html);
+  };
+
+  // minimal zip writer (stored, no compression; PNGs are already compressed)
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function makeZip(files) {
+    const enc = new TextEncoder(), parts = [], central = [];
+    let offset = 0;
+    for (const f of files) {
+      const name = enc.encode(f.name), data = f.data, crc = crc32(data);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0, true); h.setUint16(8, 0, true);
+      h.setUint16(10, 0, true); h.setUint16(12, 33, true); h.setUint32(14, crc, true);
+      h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+      h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+      parts.push(h, name, data);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0, true);
+      c.setUint16(10, 0, true); c.setUint16(12, 0, true); c.setUint16(14, 33, true); c.setUint32(16, crc, true);
+      c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true);
+      c.setUint16(30, 0, true); c.setUint16(32, 0, true); c.setUint16(34, 0, true); c.setUint16(36, 0, true);
+      c.setUint32(38, 0, true); c.setUint32(42, offset, true);
+      central.push(c, name);
+      offset += 30 + name.length + data.length;
+    }
+    const cdSize = central.reduce((a, p) => a + p.byteLength, 0);
+    const e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(4, 0, true); e.setUint16(6, 0, true);
+    e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+    e.setUint32(12, cdSize, true); e.setUint32(16, offset, true); e.setUint16(20, 0, true);
+    return new Blob([...parts, ...central, e], { type: 'application/zip' });
+  }
+
+  $('exSeq').onclick = async () => {
+    if (!hasArt()) { toast('Draw something first.'); return; }
+    const R = Math.max(doc.introFps, doc.loopFps), s = exScale(), moving = exBg() && isMoving();
+    const btn = $('exSeq'); btn.disabled = true;
+    try {
+      toast('Building PNG sequence…');
+      const files = [], unique = [];
+      const png = async c => new Uint8Array(await (await toBlob(c)).arrayBuffer());
+      if (!moving) for (let i = 0; i < doc.frames.length; i++) { unique.push(await png(await exportFrame(i, s, exBg()))); await new Promise(r => setTimeout(r, 0)); }
+      let n = 0;
+      for (let i = 0; i < doc.frames.length; i++) {
+        const count = Math.max(1, Math.round(doc.frames[i].hold * R / fpsOf(i)));
+        for (let k = 0; k < count; k++) {
+          const data = moving ? await png(await exportFrame(i, s, true, k / R)) : unique[i];
+          files.push({ name: `frames/frame_${String(++n).padStart(4, '0')}.png`, data });
+        }
+      }
+      const firstLoop = doc.frames.slice(0, doc.loopStart).reduce((a, f) => a + Math.max(1, Math.round(f.hold * R / doc.introFps)), 0) + 1;
+      const readme = `Import frames/frame_0001.png as an image sequence at ${R} fps.\n` +
+        `${n} frames total. ${doc.loopStart > 0 ? `The loop starts at frame_${String(firstLoop).padStart(4, '0')}.png, everything before it is the intro.` : 'The whole sequence loops.'}\n`;
+      files.push({ name: 'README.txt', data: new TextEncoder().encode(readme) });
+      await saveFile(`${slug()}-frames.zip`, makeZip(files));
+    } catch (err) { toast('Export failed. Try a smaller scale.'); }
+    btn.disabled = false;
+  };
+
+  $('exVideo').onclick = async () => {
+    if (!hasArt()) { toast('Draw something first.'); return; }
+    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { toast('This browser cannot record video. Try the PNG sequence.'); return; }
+    const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4;codecs=avc1', 'video/mp4']
+      .find(m => MediaRecorder.isTypeSupported(m));
+    if (!mime) { toast('This browser cannot record video. Try the PNG sequence.'); return; }
+    const btn = $('exVideo'); btn.disabled = true;
+    try {
+      const s = exScale(), moving = isMoving();
+      const seqIdx = [];
+      for (let i = 0; i < doc.loopStart; i++) seqIdx.push(i);
+      const loops = +$('exLoops').value;
+      for (let l = 0; l < loops; l++) for (let i = doc.loopStart; i < doc.frames.length; i++) seqIdx.push(i);
+      toast('Preparing video…');
+      const steps = [], still = new Map();
+      for (const i of seqIdx) {
+        const fps = fpsOf(i), hold = doc.frames[i].hold;
+        if (moving) for (let k = 0; k < hold; k++) steps.push({ c: await exportFrame(i, s, true, k / fps), ms: 1000 / fps });
+        else { if (!still.has(i)) still.set(i, await exportFrame(i, s, true)); steps.push({ c: still.get(i), ms: hold * 1000 / fps }); }
+      }
+      const c = mk(steps[0].c.width, steps[0].c.height), x = c.getContext('2d');
+      x.drawImage(steps[0].c, 0, 0);
+      const stream = c.captureStream(60);
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10e6 });
+      const chunks = [];
+      rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      const stopped = new Promise(r => { rec.onstop = r; });
+      toast('Recording video…');
+      rec.start();
+      for (const st of steps) {
+        x.clearRect(0, 0, c.width, c.height); x.drawImage(st.c, 0, 0);
+        await new Promise(r => setTimeout(r, st.ms));
+      }
+      rec.stop(); await stopped;
+      const blob = new Blob(chunks, { type: mime.split(';')[0] });
+      await saveFile(`${slug()}.` + (mime.includes('mp4') ? 'mp4' : 'webm'), blob);
+    } catch (err) { toast('Video recording failed. Try the PNG sequence.'); }
+    btn.disabled = false;
+  };
+
+  $('saveProj').onclick = async () => {
+    if (media && media.kind === 'video') toast('Background videos stay on this device but are not included in the .json file.');
+    if (await saveFile(`${slug()}.json`, docJson(doc, { bgImage: bgData || null })) && project) {
+      project.exported = Date.now(); saveNow();
+    }
+  };
+  $('openProj').onclick = () => $('projFile').click();
+  $('projFile').onchange = async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (!d || !Array.isArray(d.frames) || !d.frames.length) throw new Error('bad');
+      const nd = d.v === 2 ? fixDoc(d) : fromV1(d);
+      const name = f.name.replace(/\.json$/i, '').replace(/[-_]+/g, ' ').slice(0, 60) || 'Imported';
+      if ($('exportDlg').open) $('exportDlg').close();
+      if ($('projectsDlg').open) $('projectsDlg').close();
+      await createProject(nd, name, d.bgImage ? { kind: 'data', data: d.bgImage } : null);
+      toast(`Imported "${name}" as a new project.`);
+    } catch (err) { toast('That file is not a Mocean project.'); }
+  };
+
+  $('exportBtn').onclick = () => { stopPlay(); $('exBg').checked = doc.bg.exportBg; $('exportDlg').showModal(); };
+  $('exBg').onchange = e => { doc.bg.exportBg = e.target.checked; $('bgExport').checked = e.target.checked; persistSoon(); };
+  $('exClose').onclick = () => $('exportDlg').close();
+  $('projectsBtn').onclick = async () => { stopPlay(); await renderProjects(); $('projectsDlg').showModal(); };
+  $('pClose').onclick = () => $('projectsDlg').close();
+  $('projectsDlg').addEventListener('close', () => { $('pBackupNote').hidden = true; });
+  $('pNew').onclick = async () => { $('projectsDlg').close(); await createProject(); };
+  $('pImport').onclick = () => $('projFile').click();
+  // Feedback and support links come from config.js. Without them, those buttons stay hidden.
+  const cfg = k => { try { return (window.MOCEAN_CONFIG && window.MOCEAN_CONFIG[k]) || ''; } catch (e) { return ''; } };
+  const FEEDBACK_URL = cfg('feedbackUrl'), SUPPORT_URL = cfg('supportUrl');
+  $('feedbackBtn').hidden = !FEEDBACK_URL;
+  if (SUPPORT_URL) { $('supportBtn').href = $('supportLink').href = SUPPORT_URL; $('supportBtn').hidden = $('supportNote').hidden = false; }
+  $('feedbackBtn').onclick = () => {
+    window.open(FEEDBACK_URL, '_blank', 'noopener');
+  };
+  $('helpBtn').onclick = () => $('helpDlg').showModal();
+  $('helpClose').onclick = () => $('helpDlg').close();
+
+  // ================= boot =================
+  new ResizeObserver(resizeCanvas).observe($('stageBox'));
+  clampUi();
+  syncControls(); renderFrames(); renderLayers();
+  resizeCanvas();
+  bootStorage().then(maybeWelcome, maybeWelcome);
+  // ================= updates =================
+  // When a new version has installed and is waiting, offer a Reload button. Nothing reloads
+  // on its own: the new version only takes over after a tap, and only once any stroke in
+  // progress has finished and the project has been saved.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    let swReg = null, wantReload = false;
+    const showUpdate = () => { $('updateBar').hidden = false; document.body.classList.add('has-update'); };
+    const watch = w => w && w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) showUpdate(); });
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (wantReload) location.reload(); });
+    addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        swReg = reg;
+        if (reg.waiting && navigator.serviceWorker.controller) showUpdate();
+        watch(reg.installing);
+        reg.addEventListener('updatefound', () => watch(reg.installing));
+        // Installed apps can stay open for days, so check for updates now and then.
+        const check = () => { if (!document.hidden) reg.update().catch(() => {}); };
+        document.addEventListener('visibilitychange', check);
+        setInterval(check, 60 * 60 * 1000);
+      }).catch(() => {});
+    });
+    $('updateLater').onclick = () => { $('updateBar').hidden = true; document.body.classList.remove('has-update'); };
+    $('updateReload').onclick = async () => {
+      $('updateReload').disabled = true;
+      while (action) await new Promise(r => setTimeout(r, 100));
+      stopPlay();
+      await saveNow();
+      wantReload = true;
+      if (swReg && swReg.waiting) swReg.waiting.postMessage('skip-waiting'); else location.reload();
+    };
+  }
+})();
+</script>
+</body>
+</html>
