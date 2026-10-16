@@ -151,7 +151,11 @@
   h2, h3 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
   .side h3 { font-size: 12px; color: var(--dim); font-weight: 600; }
   .ph span { color: var(--dim); font-size: 12px; }
-  .flist { flex: 1; overflow-y: auto; padding: 2px 10px 10px; }
+  .fwrap { flex: 1; min-height: 0; min-width: 0; position: relative; display: flex; }
+  .flist { flex: 1; overflow-y: auto; padding: 2px 10px 10px; position: relative; }
+  .flist.scrub::before, .flist.scrub::after { content: ''; display: block; flex: none; height: var(--half, 0px); }
+  body.tl-bottom .flist.scrub::before, body.tl-bottom .flist.scrub::after { height: 1px; width: var(--half, 0px); }
+  .playhead { position: absolute; left: 4px; right: 4px; top: 50%; height: 0; border-top: 2px solid var(--intro); pointer-events: none; z-index: 1; }
   .fr {
     display: block; width: 100%; position: relative; padding: 4px; margin-bottom: 6px;
     border: 2px solid transparent; border-radius: 9px; background: var(--raise);
@@ -173,6 +177,18 @@
   .hold { grid-column: span 2; display: flex; align-items: center; justify-content: space-between; color: var(--dim); }
   .hold div { display: inline-flex; align-items: center; gap: 4px; }
   .hold output { text-align: center; }
+
+  /* timeline along the bottom */
+  body.tl-bottom .main { grid-template-columns: minmax(0, 1fr) 256px; grid-template-rows: minmax(0, 1fr) auto; }
+  body.tl-bottom .stage { grid-row: 1; grid-column: 1; }
+  body.tl-bottom .side { grid-row: 1 / 3; grid-column: 2; }
+  body.tl-bottom .frames { grid-row: 2; grid-column: 1; flex-direction: row; border-right: 0; border-top: 1px solid var(--line); }
+  body.tl-bottom .frames .ph { flex-direction: column; justify-content: center; align-items: flex-start; gap: 2px; padding: 8px 4px 8px 12px; }
+  body.tl-bottom .flist { display: flex; overflow-x: auto; overflow-y: hidden; padding: 10px 6px; align-items: center; }
+  body.tl-bottom .fr { width: auto; flex: none; margin: 0 6px 0 0; }
+  body.tl-bottom .fr canvas, body.tl-bottom .fr .tph { width: auto; height: 72px; }
+  body.tl-bottom .playhead { top: 4px; bottom: 4px; left: 50%; right: auto; width: 0; height: auto; border-top: 0; border-left: 2px solid var(--intro); }
+  body.tl-bottom .fctl { grid-template-columns: repeat(4, auto); align-content: center; border-top: 0; border-left: 1px solid var(--line); }
 
   .stage { position: relative; background: var(--work); min-width: 0; min-height: 0; overflow: hidden; }
   #cv { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
@@ -233,6 +249,7 @@
 
   @media (max-width: 980px) {
     .main { grid-template-columns: 132px minmax(0, 1fr); }
+    body.tl-bottom .main { grid-template-columns: minmax(0, 1fr); }
     .side {
       position: fixed; right: 0; top: 0; bottom: 0; width: 280px; z-index: 6;
       padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -252,6 +269,13 @@
     .flist { padding: 2px 6px 10px; }
     .fctl .wide, .hold { grid-column: span 1; }
     input[type="range"] { width: 70px; }
+    body.tl-bottom .main { grid-template-columns: minmax(0, 1fr); }
+    body.tl-bottom .frames { flex-direction: column; }
+    body.tl-bottom .frames .ph { display: none; }
+    body.tl-bottom .fr canvas, body.tl-bottom .fr .tph { height: 56px; }
+    body.tl-bottom .fctl { display: flex; overflow-x: auto; border-left: 0; border-top: 1px solid var(--line); padding: 6px; }
+    body.tl-bottom .fctl button { flex: none; white-space: nowrap; }
+    body.tl-bottom .hold { flex: none; flex-wrap: nowrap; gap: 6px; }
   }
   @media (prefers-reduced-motion: reduce) { .side, .toast { transition: none; } }
 </style>
@@ -264,11 +288,12 @@
     <div class="seg" role="group" aria-label="Tools">
     <button type="button" data-tool="brush" title="Brush (B)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20c2.5 0 4-1.3 4-3.4 0-1.3 1-2.3 2.3-2.3h.2L19 5.8a1.7 1.7 0 0 0-2.4-2.4L8.2 11.9v.3A2.3 2.3 0 0 1 6 14.5C4 14.5 4 17 4 20z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>Brush</button>
     <button type="button" data-tool="erase" title="Eraser (E)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 19.5h11M5 15.2l9.6-9.6a2 2 0 0 1 2.8 0l2 2a2 2 0 0 1 0 2.8l-8 8H8.6L5 15.2zM9.3 10.9l4.8 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Eraser</button>
+    <button type="button" data-tool="fill" title="Fill (F)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 11.5l6-6 7 7-6 6a1.5 1.5 0 0 1-2.1 0l-4.9-4.9a1.5 1.5 0 0 1 0-2.1zM5 12h13M9 4l2.5 2.5M19.5 16s-1.5 2-1.5 3a1.5 1.5 0 0 0 3 0c0-1-1.5-3-1.5-3z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Fill</button>
     <button type="button" data-tool="lasso" title="Select (L)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 16.5C4.6 15.3 3 13.4 3 11.2 3 7.2 7 4 12 4s9 3.2 9 7.2-4 7.2-9 7.2c-1 0-2-.1-2.9-.4M7 16.5c0 1.6 1 2.5 2.3 2.5 1 0 1.7-.6 1.7-1.5 0-.8-.8-1.5-2-1.5-.8 0-1.4 0-2 .5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0"/></svg>Select</button>
     <button type="button" data-tool="hand" title="Hand (H, or hold Space)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11m0-5.5V4.5a1.5 1.5 0 0 1 3 0V11m0-5a1.5 1.5 0 0 1 3 0v6m0-3.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-1a7 7 0 0 1-5.6-2.8L4.2 15a1.6 1.6 0 0 1 2.5-2L8 14.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Hand</button>
   </div>
     <span class="sep"></span>
-    <div class="group"><button type="button" id="undo" class="icon-btn" aria-label="Undo" title="Undo (Cmd/Ctrl+Z, two-finger tap)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" id="redo" class="icon-btn" aria-label="Redo" title="Redo (Shift+Cmd/Ctrl+Z, three-finger tap)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+    <div class="group"><button type="button" id="undo" title="Undo (Cmd/Ctrl+Z, two-finger tap)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Undo</button><button type="button" id="redo" title="Redo (Shift+Cmd/Ctrl+Z, three-finger tap)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Redo</button></div>
     <span class="sep"></span>
     <div class="group"><button type="button" id="onionBtn" title="Onion skin (O)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.7" opacity=".5"/><circle cx="15" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>Onion skin</button><button type="button" id="gridBtn" title="Grid and guides (G)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Grid</button></div>
     <span class="spacer"></span>
@@ -285,9 +310,15 @@
     <option value="marker">Marker</option>
     <option value="pencil">Pencil</option>
   </select>
-    <label>Size <input id="size" type="range" min="1" max="200" step="0.5"> <output id="sizeV"></output></label>
+    <label id="sizeWrap">Size <input id="size" type="range" min="1" max="200" step="0.5"> <output id="sizeV"></output></label>
     <label id="smoothWrap" title="Steadies the line while you draw, like StreamLine">Smoothing <input id="smooth" type="range" min="0" max="1" step="0.05"></label>
     <label id="cleanWrap" title="Irons out wobbles when you lift the pen">Cleanup <input id="cleanup" type="range" min="0" max="1" step="0.05"></label>
+    <label id="gapWrap" hidden title="Lets the fill jump small breaks in sketchy lines">Close gaps
+      <select id="fillGap"><option value="0">Off</option><option value="3">Small</option><option value="6">Medium</option><option value="12">Large</option></select>
+    </label>
+    <label id="fromWrap" hidden title="Which drawing the fill stops at">Stop at
+      <select id="fillFrom"><option value="all">All layers</option><option value="layer">This layer</option></select>
+    </label>
     <label id="eraseWrap" hidden><input id="eraseWhole" type="checkbox"> Whole strokes</label>
     <span class="sep"></span>
     <div class="group"><input id="color" type="color" aria-label="Ink color"><div class="swatches" id="swatches" aria-label="Recent colors"></div></div>
@@ -303,7 +334,7 @@
 <div class="main">
   <aside class="frames" aria-label="Frames">
     <div class="ph"><h2>Frames</h2><span id="frameCount"></span></div>
-    <div class="flist" id="frameList"></div>
+    <div class="fwrap"><div class="flist" id="frameList"></div><div class="playhead" id="playhead" hidden></div></div>
     <div class="fctl">
       <button type="button" id="fNew" title="New frame (N)">New</button>
       <button type="button" id="fDup" title="Duplicate frame (D)">Duplicate</button>
@@ -331,6 +362,10 @@
       <button type="button" id="sPaste">Paste</button>
       <button type="button" id="sCenter" title="Center on the canvas">Center</button>
       <button type="button" id="sFlip">Flip</button>
+      <select id="sFilter" aria-label="Picture filter" hidden>
+        <option value="">No filter</option><option value="bw">Black and white</option><option value="sepia">Sepia</option>
+        <option value="faded">Faded</option><option value="contrast">High contrast</option><option value="halftone">Halftone dots</option>
+      </select>
       <button type="button" id="sDel">Delete</button>
       <button type="button" id="sDone">Done</button>
     </div>
@@ -349,6 +384,14 @@
       </div>
       <label>Opacity <input id="lOpacity" type="range" min="0" max="1" step="0.05"></label>
       <p class="note">Double-click a layer name to rename it.</p>
+      <div class="row">
+        <button type="button" id="imgBtn">Add picture</button>
+        <input id="imgFile" class="hidden-input" type="file" accept="image/*">
+      </div>
+      <p class="note">Or paste or drop a picture onto the canvas.</p>
+      <label title="Jiggles everything on this layer a little on each drawing">Wobble <input id="lBoil" type="range" min="0" max="10" step="0.5"> <output id="lBoilV"></output></label>
+      <label>Changes every <select id="lBoilEvery"><option value="1">frame</option><option value="2">2 frames</option><option value="3">3 frames</option><option value="4">4 frames</option></select></label>
+      <p class="note">Wobble shows on other layers, in Play and in exports. The layer you're working on holds still.</p>
     </div>
 
     <div class="sec">
@@ -383,6 +426,15 @@
       <label>Loop fps <input id="loopFps" type="range" min="2" max="30" step="1"> <output id="loopFpsV"></output></label>
       <p class="note legend"><span><i style="background:var(--intro)"></i>Plays once</span> &nbsp; <span><i style="background:var(--loop)"></i>Loops</span></p>
       <p class="note">Select a frame and press "Loop from here". Frames before it play once, then the rest repeat.</p>
+    </div>
+
+    <div class="sec">
+      <h3>Timeline</h3>
+      <label>Position
+        <select id="tlPos"><option value="left">Left side</option><option value="bottom">Bottom</option></select>
+      </label>
+      <label><input id="tlScrub" type="checkbox"> Scrub by scrolling</label>
+      <p class="note">Scroll or swipe the frames and the canvas follows the line, so the animation plays as fast or slow as your hand moves.</p>
     </div>
 
     <div class="sec">
@@ -485,10 +537,22 @@
   <div class="row" style="margin-top:14px"><span class="spacer"></span><button type="button" class="primary" id="welcomeOk">Got it</button></div>
 </dialog>
 
+<dialog id="imgDlg" aria-labelledby="imgTitle">
+  <h2 id="imgTitle">Add picture</h2>
+  <p class="note" style="font-size:13px">The picture is stored once, however many frames show it. You can still move or resize it on each frame.</p>
+  <div class="ex">
+    <button type="button" class="primary" id="imgEvery">Every frame</button>
+    <p id="imgEveryNote"></p>
+    <button type="button" id="imgOne">This frame</button>
+    <p>On the current layer, this frame only.</p>
+  </div>
+  <div class="row"><span class="spacer"></span><button type="button" id="imgCancel">Cancel</button></div>
+</dialog>
+
 <dialog id="helpDlg" aria-labelledby="helpTitle">
   <h2 id="helpTitle">Shortcuts</h2>
   <div class="keys">
-    <kbd>B E L H</kbd><span>Brush, eraser, select, hand</span>
+    <kbd>B E F L H</kbd><span>Brush, eraser, fill, select, hand</span>
     <kbd>[ ]</kbd><span>Smaller or bigger brush</span>
     <kbd>Space</kbd><span>Hold and drag to pan</span>
     <kbd>Cmd/Ctrl + scroll</kbd><span>Zoom, or pinch on a trackpad</span>
@@ -535,7 +599,9 @@
 
   // ================= document model =================
   // The document is treated as immutable: every edit builds a new doc, so undo is just a stack of old docs.
-  function newLayer(name) { return { id: uid(), name, visible: true, opacity: 1, locked: false }; }
+  // boil jiggles the whole layer a little on each drawing. It's worked out from the frame number
+  // while drawing, so it costs nothing to store.
+  function newLayer(name) { return { id: uid(), name, visible: true, opacity: 1, locked: false, boil: 0, boilEvery: 2 }; }
   function newFrame(cels, hold) { return { id: uid(), r: uid(), hold: hold || 1, cels: cels || {} }; }
   function newDoc(w, h) {
     return {
@@ -559,7 +625,7 @@
       let id = f.id || uid(); if (ids.has(id)) id = uid(); ids.add(id);
       return { id, r: uid(), hold: clamp(f.hold | 0 || 1, 1, 48), cels: f.cels || {} };
     });
-    delete doc.bgImage; delete doc.cur;
+    delete doc.bgImage; delete doc.cur; delete doc.assets;
     doc.loopStart = clamp(doc.loopStart | 0, 0, doc.frames.length - 1);
     doc.v = 2;
     return doc;
@@ -595,12 +661,13 @@
     sizes: { brush: 8, erase: 30 }, smooth: 0.6, cleanup: 0.5, color: '#ececee', eraseWhole: false,
     recent: ['#ececee', '#101012', '#6883ba', '#c9725f', '#9a9aa2'],
     grid: { on: false, lines: true, size: 50, center: true, thirds: false, snap: true },
+    timeline: 'left', scrub: true, fillGap: 3, fillFrom: 'all',
     view: { s: 1, x: 0, y: 0 }, playing: false, playIdx: 0, playHold: 0, hover: null, hoverPen: false
   };
   try {
     const u = JSON.parse(localStorage.getItem(UIKEY) || 'null');
     if (u) {
-      ['tool', 'brush', 'smooth', 'cleanup', 'color', 'eraseWhole'].forEach(k => { if (u[k] != null) ui[k] = u[k]; });
+      ['tool', 'brush', 'smooth', 'cleanup', 'color', 'eraseWhole', 'timeline', 'scrub', 'fillGap', 'fillFrom'].forEach(k => { if (u[k] != null) ui[k] = u[k]; });
       if (u.sizes) ui.sizes = Object.assign(ui.sizes, u.sizes);
       if (Array.isArray(u.recent)) ui.recent = u.recent.slice(0, 8);
       if (u.grid) ui.grid = Object.assign(ui.grid, u.grid);
@@ -661,7 +728,8 @@
       get: (st, k) => run(st, 'readonly', s => s.get(k)),
       put: (st, v, k) => run(st, 'readwrite', s => (k === undefined ? s.put(v) : s.put(v, k))),
       del: (st, k) => run(st, 'readwrite', s => s.delete(k)),
-      all: st => run(st, 'readonly', s => s.getAll())
+      all: st => run(st, 'readonly', s => s.getAll()),
+      keys: st => run(st, 'readonly', s => s.getAllKeys())
     };
   })();
   let project = null, ready = false, storageOK = true, pT, warned = false;
@@ -691,7 +759,7 @@
   }
   const recFrameCount = r => r.docFrames ? r.docFrames.length : (r.doc && r.doc.frames ? r.doc.frames.length : 0);
   const recHasArt = r => r.art != null ? r.art : docHasArt(r.doc);
-  const recJson = (r, extra) => r.docHead ? joinDoc(r.docHead.slice(0, -1) + ',"bgImage":' + JSON.stringify(extra.bgImage) + '}', r.docFrames) : JSON.stringify(Object.assign({}, r.doc, extra));
+  const recJson = (r, extra) => r.docHead ? joinDoc(r.docHead.slice(0, -1) + Object.keys(extra).map(k => ',' + JSON.stringify(k) + ':' + JSON.stringify(extra[k])).join('') + '}', r.docFrames) : JSON.stringify(Object.assign({}, r.doc, extra));
 
   // Big projects wait a little longer, and never save in the middle of a stroke.
   function persistSoon() {
@@ -700,7 +768,7 @@
     try {
       localStorage.setItem(UIKEY, JSON.stringify({
         tool: ui.tool, brush: ui.brush, sizes: ui.sizes, smooth: ui.smooth, cleanup: ui.cleanup,
-        color: ui.color, eraseWhole: ui.eraseWhole, recent: ui.recent, grid: ui.grid
+        color: ui.color, eraseWhole: ui.eraseWhole, recent: ui.recent, grid: ui.grid, timeline: ui.timeline, scrub: ui.scrub, fillGap: ui.fillGap, fillFrom: ui.fillFrom
       }));
     } catch (e) {}
   }
@@ -741,6 +809,249 @@
     }
     catch (e) { toast('This background is too big to keep on this device. It will be gone next time.'); }
   }
+  // ================= pictures =================
+  // A picture's bytes are stored once per project (media store, key "<project id>/<asset id>") and
+  // decoded once into memory. Frames only hold a small item that points at it:
+  //   { img: assetId, filter, pts: [[x0, y0, 1], [x1, y1, 1]], size: 0 }
+  // so a picture on 60 frames costs 60 tiny items, and each frame's copy can still be moved or
+  // resized on its own. Keeping the corners in pts lets the selection tools move, scale and flip
+  // it just like a stroke. A flipped picture has its first corner on the right.
+  const assets = new Map();
+  let pendingImg = null;
+  const assetKey = (pid, id) => pid + '/' + id;
+  function docAssetIds(d) {
+    const ids = new Set();
+    for (const f of d.frames) for (const k in f.cels) for (const st of f.cels[k] || EMPTY) if (st.img) ids.add(st.img);
+    return ids;
+  }
+  function freeAssets() {
+    for (const a of assets.values()) { a.c.width = a.c.height = 0; for (const c of a.looks.values()) c.width = c.height = 0; }
+    assets.clear();
+  }
+  async function imageCanvas(blob, max) {
+    let src = null, url = '';
+    if (window.createImageBitmap) { try { src = await createImageBitmap(blob); } catch (e) {} }
+    if (!src) {
+      url = URL.createObjectURL(blob); src = new Image(); src.src = url;
+      try { await src.decode(); } catch (e) { URL.revokeObjectURL(url); throw e; }
+    }
+    const w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
+    if (!w || !h) throw new Error('image');
+    const k = max ? Math.min(1, max / Math.max(w, h)) : 1;
+    const c = mk(Math.round(w * k), Math.round(h * k)), x = c.getContext('2d');
+    x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, c.width, c.height);
+    if (src.close) src.close();
+    if (url) URL.revokeObjectURL(url);
+    return c;
+  }
+  function hasAlpha(c) {
+    const t = mk(64, 64), x = t.getContext('2d');
+    x.drawImage(c, 0, 0, 64, 64);
+    const d = x.getImageData(0, 0, 64, 64).data;
+    for (let i = 3; i < d.length; i += 4) if (d[i] < 250) return true;
+    return false;
+  }
+  const blobToData = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); });
+  async function mediaKeys(pid) {
+    let keys = []; try { keys = await DB.keys('media'); } catch (e) {}
+    return keys.filter(k => typeof k === 'string' && k.startsWith(pid + '/'));
+  }
+  // Loads the pictures a project uses, and forgets stored pictures nothing uses any more.
+  async function loadAssets(pid, d) {
+    const ids = docAssetIds(d);
+    for (const k of await mediaKeys(pid)) if (!ids.has(k.slice(pid.length + 1))) { try { await DB.del('media', k); } catch (e) {} }
+    let any = false;
+    for (const id of ids) {
+      if (assets.has(id)) continue;
+      try {
+        const m = await DB.get('media', assetKey(pid, id));
+        if (!m || !project || project.id !== pid) continue;
+        const c = await imageCanvas(new Blob([m.buf], { type: m.type }));
+        if (!project || project.id !== pid) return;
+        assets.set(id, { c, type: m.type, looks: new Map() }); any = true;
+      } catch (e) {}
+    }
+    if (any) assetsChanged();
+  }
+  function assetsChanged() { celLRU.clear(); compLRU.clear(); thumbCache.clear(); thumbMemo = { c: null, url: '' }; renderStage(); renderFrames(); }
+  // Pictures as data URLs, for .json project files.
+  async function assetsJson(pid, d) {
+    const out = {};
+    for (const id of docAssetIds(d)) {
+      try { const m = await DB.get('media', assetKey(pid, id)); if (m) out[id] = await blobToData(new Blob([m.buf], { type: m.type })); } catch (e) {}
+      if (!out[id] && project && pid === project.id && assets.has(id)) out[id] = assets.get(id).c.toDataURL('image/png');
+    }
+    return out;
+  }
+  function assetEntries(json) {
+    const out = {};
+    for (const id in (json || {})) {
+      const data = json[id];
+      if (typeof data !== 'string' || !data.startsWith('data:image/')) continue;
+      out[id] = { kind: 'asset', type: data.slice(5, data.indexOf(';')), buf: dataToBytes(data).buffer };
+    }
+    return out;
+  }
+  async function copyAssets(from, to) { for (const k of await mediaKeys(from)) await DB.put('media', await DB.get('media', k), to + k.slice(from.length)); }
+  async function deleteAssets(pid) { for (const k of await mediaKeys(pid)) { try { await DB.del('media', k); } catch (e) {} } }
+
+  // Keeps a canvas as a picture of this project: in memory right away, and stored once on the device.
+  async function addAsset(c, type) {
+    const id = 'a' + uid(), pid = project.id;
+    assets.set(id, { c, type, looks: new Map() });
+    if (storageOK) {
+      try {
+        const blob = await new Promise(r => c.toBlob(r, type, 0.9));
+        await DB.put('media', { kind: 'asset', type, buf: await blob.arrayBuffer() }, assetKey(pid, id));
+      } catch (e) { toast('This is too big to keep on this device. It will be gone next time.'); }
+    }
+    return id;
+  }
+  // Whether a point is on a picture. Fills count only where they have color, not their whole box.
+  function picHit(s, x, y, pad) {
+    const p = s.pts, x0 = Math.min(p[0][0], p[1][0]), x1 = Math.max(p[0][0], p[1][0]), y0 = Math.min(p[0][1], p[1][1]), y1 = Math.max(p[0][1], p[1][1]);
+    if (x < x0 - pad || x > x1 + pad || y < y0 - pad || y > y1 + pad) return false;
+    if (!s.fill) return true;
+    const a = assets.get(s.img); if (!a) return false;
+    if (!a.alpha) a.alpha = a.c.getContext('2d').getImageData(0, 0, a.c.width, a.c.height).data;
+    const W = a.c.width, H = a.c.height;
+    let u = clamp(Math.floor((x - x0) / (x1 - x0 || 1) * W), 0, W - 1);
+    const v = clamp(Math.floor((y - y0) / (y1 - y0 || 1) * H), 0, H - 1);
+    if (p[0][0] > p[1][0]) u = W - 1 - u;
+    return a.alpha[(v * W + u) * 4 + 3] > 0;
+  }
+
+  // ================= fill =================
+  // Fills the area around the tap in what you see on this frame (every visible layer, or just this
+  // one), and keeps the result as a small picture item under the lines of the current layer.
+  // "Close gaps" thickens the lines while looking for the edge, so the fill can't leak through
+  // small breaks, then grows the fill back out to meet them.
+  function dilate(src, w, h, r) {
+    if (r <= 0) return src;
+    const tmp = new Uint8Array(w * h), out = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) {
+      const o = y * w;
+      let d = 1e9;
+      for (let x = 0; x < w; x++) { d = src[o + x] ? 0 : d + 1; if (d <= r) tmp[o + x] = 1; }
+      d = 1e9;
+      for (let x = w - 1; x >= 0; x--) { d = src[o + x] ? 0 : d + 1; if (d <= r) tmp[o + x] = 1; }
+    }
+    for (let x = 0; x < w; x++) {
+      let d = 1e9;
+      for (let y = 0; y < h; y++) { d = tmp[y * w + x] ? 0 : d + 1; if (d <= r) out[y * w + x] = 1; }
+      d = 1e9;
+      for (let y = h - 1; y >= 0; y--) { d = tmp[y * w + x] ? 0 : d + 1; if (d <= r) out[y * w + x] = 1; }
+    }
+    return out;
+  }
+  function floodFill(px) {
+    const fx = Math.floor(px[0]), fy = Math.floor(px[1]), w = doc.w, h = doc.h;
+    if (fx < 0 || fy < 0 || fx >= w || fy >= h || lockedCheck()) return;
+    const src = mk(w, h), sxc = src.getContext('2d');
+    for (const L of doc.layers) {
+      if (!L.visible || (ui.fillFrom === 'layer' && L.id !== ui.layer)) continue;
+      const c = celCanvas(cel(ui.cur, L.id)); if (c) sxc.drawImage(c, 0, 0);
+    }
+    const d = sxc.getImageData(0, 0, w, h).data, n = w * h;
+    src.width = src.height = 0;
+    // Pixels that differ from the tapped one (compared premultiplied, so empty areas all match) are edges.
+    const si = (fy * w + fx) * 4, sa = d[si + 3];
+    const sr = d[si] * sa / 255, sg = d[si + 1] * sa / 255, sb = d[si + 2] * sa / 255, TOL = 60;
+    const edge = new Uint8Array(n);
+    for (let i = 0, q = 0; i < n; i++, q += 4) {
+      const a = d[q + 3];
+      if (Math.abs(a - sa) > TOL || Math.abs(d[q] * a / 255 - sr) > TOL || Math.abs(d[q + 1] * a / 255 - sg) > TOL || Math.abs(d[q + 2] * a / 255 - sb) > TOL) edge[i] = 1;
+    }
+    const gap = +ui.fillGap || 0, seed = fy * w + fx;
+    let wall = dilate(edge, w, h, gap);
+    if (wall[seed]) wall = edge; // tapped right beside a line: fill without closing gaps
+    const F = new Uint8Array(n), stack = [seed];
+    while (stack.length) {
+      const i = stack.pop();
+      if (F[i] || wall[i]) continue;
+      const y = (i / w) | 0, o = y * w;
+      let l = i - o, r = l;
+      while (l > 0 && !F[o + l - 1] && !wall[o + l - 1]) l--;
+      while (r < w - 1 && !F[o + r + 1] && !wall[o + r + 1]) r++;
+      let up = false, dn = false;
+      for (let x = l; x <= r; x++) {
+        F[o + x] = 1;
+        if (y > 0) { const j = o - w + x, ok = !F[j] && !wall[j]; if (ok && !up) stack.push(j); up = ok; }
+        if (y < h - 1) { const j = o + w + x, ok = !F[j] && !wall[j]; if (ok && !dn) stack.push(j); dn = ok; }
+      }
+    }
+    // Grow back to the lines (and 2 px under them, so no sliver shows at soft edges), but only over
+    // lines or the band the gap closing took away, so it doesn't spill out through a gap.
+    const grown = dilate(F, w, h, gap + 2);
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let i = 0; i < n; i++) {
+      if (!F[i] && grown[i] && (edge[i] || wall[i])) F[i] = 1;
+      if (F[i]) { const x = i % w, y = (i / w) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 < 0) return;
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1, out = mk(bw, bh), ox = out.getContext('2d'), img = ox.createImageData(bw, bh), [cr, cg, cb] = hexRgb(ui.color);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+      if (!F[(y + y0) * w + x + x0]) continue;
+      const q = (y * bw + x) * 4; img.data[q] = cr; img.data[q + 1] = cg; img.data[q + 2] = cb; img.data[q + 3] = 255;
+    }
+    ox.putImageData(img, 0, 0);
+    const id = 'a' + uid();
+    assets.set(id, { c: out, type: 'image/png', looks: new Map() });
+    const item = { img: id, fill: true, filter: '', brush: 'fill', color: ui.color, size: 0, pts: [[x0, y0, 1], [x1 + 1, y1 + 1, 1]] };
+    // Under the lines: after any fills already at the bottom of this layer.
+    const st = cel(ui.cur, ui.layer).slice();
+    let at = 0; while (at < st.length && st[at].fill) at++;
+    st.splice(at, 0, item);
+    addRecent(ui.color);
+    commit(withCel(ui.cur, ui.layer, st));
+    storeAsset(id);
+  }
+  async function storeAsset(id) {
+    const a = assets.get(id), pid = project && project.id;
+    if (!a || !pid || !storageOK) return;
+    try {
+      const blob = await new Promise(r => a.c.toBlob(r, a.type));
+      await DB.put('media', { kind: 'asset', type: a.type, buf: await blob.arrayBuffer() }, assetKey(pid, id));
+    } catch (e) { toast('Could not keep this fill on this device.'); }
+  }
+
+  async function importImage(file) {
+    if (!project || !file) return;
+    stopPlay();
+    let c;
+    // Anything bigger than twice the canvas never shows, so it isn't kept.
+    try { c = await imageCanvas(file, Math.min(2048, Math.max(doc.w, doc.h) * 2)); }
+    catch (e) { toast("That picture couldn't be opened."); return; }
+    const id = await addAsset(c, hasAlpha(c) ? 'image/png' : 'image/jpeg');
+    pendingImg = { id, name: file.name || 'Picture', w: c.width, h: c.height };
+    $('imgEveryNote').textContent = `On a new layer, on all ${doc.frames.length} frame${doc.frames.length === 1 ? '' : 's'}.`;
+    $('imgDlg').showModal();
+  }
+  function placeImage(everyFrame) {
+    const a = pendingImg; pendingImg = null;
+    if ($('imgDlg').open) $('imgDlg').close();
+    if (!a) return;
+    const k = Math.min(doc.w * 0.8 / a.w, doc.h * 0.8 / a.h, 1), w = Math.round(a.w * k), h = Math.round(a.h * k), x0 = Math.round((doc.w - w) / 2), y0 = Math.round((doc.h - h) / 2);
+    const item = { img: a.id, filter: '', brush: 'image', color: '#000000', size: 0, pts: [[x0, y0, 1], [x0 + w, y0 + h, 1]] };
+    cancelAction(); clearSel();
+    if (everyFrame) {
+      const L = newLayer(a.name.replace(/\.[^.]+$/, '').slice(0, 40) || 'Picture');
+      const idx = doc.layers.findIndex(l => l.id === ui.layer), layers = doc.layers.slice();
+      layers.splice(idx + 1, 0, L);
+      // One array shared by every frame. Moving the picture on a frame gives that frame its own copy.
+      const arr = [item];
+      const frames = doc.frames.map(f => Object.assign({}, f, { r: uid(), cels: Object.assign({}, f.cels, { [L.id]: arr }) }));
+      ui.layer = L.id;
+      commit(Object.assign({}, doc, { layers, frames }));
+    } else {
+      if (lockedCheck()) return;
+      commit(withCel(ui.cur, ui.layer, cel(ui.cur, ui.layer).concat([item])));
+    }
+    setTool('lasso');
+    makeSel(new Set([cel(ui.cur, ui.layer).length - 1])); renderStage();
+    toast('Drag the picture to move it, or a corner to resize it.');
+  }
+
   addEventListener('pagehide', () => { saveNow(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 
@@ -760,7 +1071,7 @@
     celLRU.clear(); compLRU.clear(); thumbCache.clear(); thumbMemo = { c: null, url: '' };
     for (const b of frameBtns.values()) { if (thumbIO) thumbIO.unobserve(b); b.remove(); }
     frameBtns.clear();
-    clearMedia(); bgData = null;
+    clearMedia(); bgData = null; freeAssets();
     project = { id: rec.id, name: rec.name, created: rec.created || Date.now(), exported: rec.exported || 0 };
     try { localStorage.setItem(CURKEY, rec.id); } catch (e) {}
     const d = recDoc(rec);
@@ -772,6 +1083,7 @@
     $('projName').textContent = rec.name;
     document.title = `${rec.name} | Mocean`;
     clampUi(); renderFrames(); renderLayers(); syncControls(); fit();
+    loadAssets(rec.id, doc);
     let m = null;
     try { m = await DB.get('media', rec.id); } catch (e) {}
     if (m && m.kind === 'data' && m.data) setBgData(m.data, true, true);
@@ -779,11 +1091,14 @@
     else afterBg();
     ready = true;
   }
-  async function createProject(d, name, mediaEntry) {
+  async function createProject(d, name, mediaEntry, pics) {
     await saveNow();
     let list = []; try { list = await DB.all('projects'); } catch (e) {}
     const rec = makeRecord(d || newDoc(doc.w, doc.h), name || nextUntitled(list));
-    try { await DB.put('projects', rec); if (mediaEntry) await DB.put('media', mediaEntry, rec.id); }
+    try {
+      await DB.put('projects', rec); if (mediaEntry) await DB.put('media', mediaEntry, rec.id);
+      for (const id in (pics || {})) await DB.put('media', pics[id], assetKey(rec.id, id));
+    }
     catch (e) { toast('Could not create a project on this device.'); return; }
     await openProject(rec);
     return rec;
@@ -821,7 +1136,9 @@
     let bg = null;
     try { const m = await DB.get('media', r.id); if (m && m.kind === 'data') bg = m.data; } catch (e) {}
     const name = (r.name || 'mocean').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'mocean';
-    const json = project && r.id === project.id ? docJson(doc, { bgImage: bgData || null }) : recJson(r, { bgImage: bg });
+    const cur = project && r.id === project.id;
+    const pics = await assetsJson(r.id, cur ? doc : recDoc(r));
+    const json = cur ? docJson(doc, { bgImage: bgData || null, assets: pics }) : recJson(r, { bgImage: bg, assets: pics });
     if (!await saveFile(`${name}.json`, json)) return;
     r.exported = Date.now();
     if (project && r.id === project.id) { project.exported = r.exported; await saveNow(); }
@@ -882,12 +1199,13 @@
           try {
             await DB.put('projects', copy);
             const m = await DB.get('media', r.id); if (m) await DB.put('media', m, copy.id);
+            await copyAssets(r.id, copy.id);
           } catch (e) { toast('Could not duplicate.'); }
           renderProjects();
         }),
         mkBtn('Delete', async () => {
           if (!confirm(`Delete "${r.name}" for good? This can't be undone.`)) return;
-          try { await DB.del('projects', r.id); await DB.del('media', r.id); } catch (e) {}
+          try { await DB.del('projects', r.id); await DB.del('media', r.id); await deleteAssets(r.id); } catch (e) {}
           if (project && r.id === project.id) {
             ready = false; project = null;
             const rest = (await DB.all('projects')).sort((a, b) => b.updated - a.updated);
@@ -969,8 +1287,59 @@
       c.quadraticCurveTo(p[i][0], p[i][1], last ? p[i][0] : (p[i][0] + p[i + 1][0]) / 2, last ? p[i][1] : (p[i][1] + p[i + 1][1]) / 2);
     }
   }
+  // A filter is worked out once per picture and kept, so it costs nothing per frame.
+  function filtered(a, f) {
+    if (!f) return a.c;
+    let c = a.looks.get(f); if (c) return c;
+    c = mk(a.c.width, a.c.height);
+    const x = c.getContext('2d');
+    if (f === 'halftone') halftone(a.c, x);
+    else {
+      x.drawImage(a.c, 0, 0);
+      const img = x.getImageData(0, 0, c.width, c.height), d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const R = d[i], G = d[i + 1], B = d[i + 2], l = 0.299 * R + 0.587 * G + 0.114 * B;
+        let r = R, g = G, b = B;
+        if (f === 'bw') r = g = b = l;
+        else if (f === 'sepia') { r = 0.393 * R + 0.769 * G + 0.189 * B; g = 0.349 * R + 0.686 * G + 0.168 * B; b = 0.272 * R + 0.534 * G + 0.131 * B; }
+        else if (f === 'faded') { r = 34 + (R + (l - R) * 0.45) * 0.76; g = 30 + (G + (l - G) * 0.45) * 0.76; b = 24 + (B + (l - B) * 0.45) * 0.72; }
+        else if (f === 'contrast') { r = (R - 128) * 1.5 + 128; g = (G - 128) * 1.5 + 128; b = (B - 128) * 1.5 + 128; }
+        d[i] = r; d[i + 1] = g; d[i + 2] = b;
+      }
+      x.putImageData(img, 0, 0);
+    }
+    a.looks.set(f, c);
+    return c;
+  }
+  // Printed-dot look: dark dots on paper, bigger where the picture is darker.
+  function halftone(src, x) {
+    const w = src.width, h = src.height, cell = Math.max(4, Math.round(Math.max(w, h) / 150));
+    const gw = Math.ceil(w / cell), gh = Math.ceil(h / cell), sm = mk(gw, gh), smx = sm.getContext('2d');
+    smx.imageSmoothingQuality = 'high'; smx.drawImage(src, 0, 0, gw, gh);
+    const d = smx.getImageData(0, 0, gw, gh).data;
+    x.fillStyle = '#f2ead8'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#1c1915'; x.beginPath();
+    for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+      const q = (j * gw + i) * 4, l = (0.299 * d[q] + 0.587 * d[q + 1] + 0.114 * d[q + 2]) / 255;
+      const r = cell * 0.72 * Math.sqrt(1 - l);
+      if (r < 0.3) continue;
+      const cx = (i + 0.5) * cell, cy = (j + 0.5) * cell;
+      x.moveTo(cx + r, cy); x.arc(cx, cy, r, 0, Math.PI * 2);
+    }
+    x.fill();
+    x.globalCompositeOperation = 'destination-in'; x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-over';
+  }
+  function drawPicture(c, s) {
+    const a = assets.get(s.img); if (!a) return;
+    const p = s.pts, x0 = Math.min(p[0][0], p[1][0]), x1 = Math.max(p[0][0], p[1][0]), y0 = Math.min(p[0][1], p[1][1]), y1 = Math.max(p[0][1], p[1][1]);
+    c.save(); c.imageSmoothingQuality = 'high';
+    if (p[0][0] > p[1][0]) { c.translate(x0 + x1, 0); c.scale(-1, 1); }
+    c.drawImage(filtered(a, s.filter), x0, y0, x1 - x0, y1 - y0);
+    c.restore();
+  }
   function drawStroke(c, s) {
     const p = s.pts; if (!p || !p.length) return;
+    if (s.img) { drawPicture(c, s); return; }
     c.lineCap = 'round'; c.lineJoin = 'round';
     if (s.brush === 'marker') {
       c.strokeStyle = s.color; c.lineWidth = s.size; smoothPath(c, p); c.stroke(); return;
@@ -995,17 +1364,40 @@
   const refIds = new WeakMap(); let refN = 0;
   const rid = o => { let v = refIds.get(o); if (!v) { v = ++refN; refIds.set(o, v); } return v; };
   const celLRU = new LRU(true), compLRU = new LRU(true), thumbCache = new Map();
-  const layerSig = () => doc.layers.map(l => l.id + (l.visible ? 1 : 0) + ':' + l.opacity).join('|');
+  const layerSig = () => doc.layers.map(l => l.id + (l.visible ? 1 : 0) + ':' + l.opacity + ':' + l.boil + '/' + l.boilEvery).join('|');
+  // Wobble: each drawing nudges the whole layer by a small random amount (always the same for that
+  // frame), changing every boilEvery frames. Scaled to the canvas, so it looks alike at any size.
+  function hashStr(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619); return h; }
+  function boilOf(L, fi) {
+    if (!L.boil) return null;
+    const r = mulberry(hashStr(L.id) ^ Math.imul(Math.floor(fi / (L.boilEvery || 2)) + 1, 0x9E3779B1));
+    const a = L.boil * Math.max(doc.w, doc.h) / 1000;
+    return { dx: (r() * 2 - 1) * a, dy: (r() * 2 - 1) * a, rot: (r() * 2 - 1) * L.boil * 0.0015, s: 1 + (r() * 2 - 1) * L.boil * 0.002 };
+  }
+  function applyBoil(x, b) {
+    x.translate(doc.w / 2 + b.dx, doc.h / 2 + b.dy); x.rotate(b.rot); x.scale(b.s, b.s); x.translate(-doc.w / 2, -doc.h / 2);
+  }
+  function drawBoiled(x, c, L, fi) {
+    const b = boilOf(L, fi);
+    if (!b) { x.drawImage(c, 0, 0, doc.w, doc.h); return; }
+    x.save(); applyBoil(x, b); x.drawImage(c, 0, 0, doc.w, doc.h); x.restore();
+  }
   const bgSig = () => [doc.bg.color, doc.bg.transparent, bgId, doc.bg.imgOpacity, doc.bg.fit, doc.bg.mediaOffset, doc.bg.mediaLoop].join('|');
 
-  function celCanvas(strokes) {
+  // outline: draw pictures as just their frame, for onion skins (a tinted picture is a solid block).
+  function celCanvas(strokes, outline) {
     if (!strokes.length) return null;
-    const k = rid(strokes) + ':' + doc.w + 'x' + doc.h;
+    if (outline && !strokes.some(s => s.img && !s.fill)) outline = false;
+    const k = rid(strokes) + ':' + doc.w + 'x' + doc.h + (outline ? ':o' : '');
     let c = celLRU.get(k);
     if (!c) {
       c = mk(doc.w, doc.h);
       const x = c.getContext('2d');
-      for (const s of strokes) drawStroke(x, s);
+      x.lineWidth = Math.max(2, Math.max(doc.w, doc.h) / 300);
+      for (const s of strokes) {
+        if (outline && s.img && !s.fill) { const p = s.pts; x.strokeRect(p[0][0], p[0][1], p[1][0] - p[0][0], p[1][1] - p[0][1]); }
+        else drawStroke(x, s);
+      }
       celLRU.set(k, c, budget());
     }
     return c;
@@ -1019,8 +1411,8 @@
     let any = false;
     for (const L of doc.layers) {
       if (!L.visible) continue;
-      const cc = celCanvas(cel(fi, L.id)); if (!cc) continue;
-      any = true; x.globalAlpha = L.opacity; x.drawImage(cc, 0, 0);
+      const cc = celCanvas(cel(fi, L.id), !!tint); if (!cc) continue;
+      any = true; x.globalAlpha = L.opacity; drawBoiled(x, cc, L, fi);
     }
     x.globalAlpha = 1;
     if (tint && any) {
@@ -1241,7 +1633,7 @@
 
   function clearMedia() {
     if (media && media.kind === 'video') { try { media.el.pause(); URL.revokeObjectURL(media.el.src); media.el.remove(); } catch (e) {} }
-    media = null; vidCache.clear(); vq.clear();
+    media = null; vidCache.clear(); vq.clear(); vAsked.clear();
   }
   function afterBg() { bgId++; renderStage(); renderFrames(); syncControls(); }
   function setBgData(data, quiet, fromStore) {
@@ -1362,7 +1754,9 @@
       } else if (active && live.xf && sel) {
         cel(ui.cur, L.id).forEach((s, i) => drawStroke(sx, sel.idx.has(i) ? xfStroke(s, live.xf) : s));
       } else {
-        const c = celCanvas(cel(ui.cur, L.id)); if (c) sx.drawImage(c, 0, 0);
+        // The layer you're working on holds still, so it lines up with your pen and the selection.
+        const c = celCanvas(cel(ui.cur, L.id));
+        if (c) { if (active && !ui.boilPreview) sx.drawImage(c, 0, 0); else drawBoiled(sx, c, L, ui.cur); }
       }
       if (active && live.stroke) drawStroke(sx, live.stroke);
     }
@@ -1432,24 +1826,42 @@
 
   // ================= frames panel =================
   function thumbKey(f, i) {
-    const gifT = media && media.kind === 'gif' ? '|' + bgTime(i, 0).toFixed(3) : '';
-    return f.r + '|' + layerSig() + '|' + bgSig() + gifT + '|' + doc.w + 'x' + doc.h;
+    const mt = isMoving() ? '|' + bgTime(i, 0).toFixed(3) : '';
+    return f.r + '|' + layerSig() + '|' + bgSig() + mt + '|' + doc.w + 'x' + doc.h;
   }
-  function thumbFor(f, i) {
+  // A video frame takes a seek to grab, so a thumbnail is first drawn without it and marked
+  // pending. Thumbnails on screen (want) ask for their video frame and redraw once it arrives.
+  const vAsked = new Set();
+  function askThumbVideo(t, id) {
+    const k = vKey(t);
+    if (vAsked.has(k)) return;
+    vAsked.add(k);
+    videoRequest(t, true).then(() => { vAsked.delete(k); const b = frameBtns.get(id); if (b && b._near) setThumb(b); });
+  }
+  function thumbFor(f, i, want) {
     let tw = 128, th = Math.round(tw * doc.h / doc.w);
     if (th > 128) { th = 128; tw = Math.round(128 * doc.w / doc.h); }
     const k = thumbKey(f, i);
     let c = thumbCache.get(k);
-    if (c) return c;
+    if (c && !c._pending) return c;
+    let src = null, vt = -1;
+    if (media && media.kind === 'video') { vt = wrapT(bgTime(i, 0)); src = vidCache.get(vKey(vt)) || null; }
+    else if (media) src = bgSource(i, 0);
+    if (c && !src) { if (want) askThumbVideo(vt, f.id); return c; }
     c = mk(tw * 2, th * 2);
     const x = c.getContext('2d'), s = c.width / doc.w;
     x.scale(s, s);
-    drawBg(x, doc.w, doc.h, true, false, media && media.kind !== 'video' ? bgSource(i, 0) : null);
+    drawBg(x, doc.w, doc.h, true, false, src);
     for (const L of doc.layers) {
       if (!L.visible) continue;
       x.globalAlpha = L.opacity;
+      const b = boilOf(L, i);
+      x.save(); if (b) applyBoil(x, b);
       for (const st of (f.cels[L.id] || EMPTY)) drawStroke(x, st);
+      x.restore();
     }
+    c._pending = vt >= 0 && !src;
+    if (c._pending && want) askThumbVideo(vt, f.id);
     thumbCache.set(k, c);
     if (thumbCache.size > Math.max(300, doc.frames.length * 2)) thumbCache.delete(thumbCache.keys().next().value);
     return c;
@@ -1459,10 +1871,10 @@
   const frameBtns = new Map();
   const thumbIO = window.IntersectionObserver ? new IntersectionObserver(es => es.forEach(e => {
     e.target._near = e.isIntersecting; if (e.isIntersecting) setThumb(e.target);
-  }), { root: $('frameList'), rootMargin: '600px 0px' }) : null;
+  }), { root: $('frameList'), rootMargin: '600px' }) : null;
   function setThumb(b) {
     const f = b._f; if (!f) return;
-    const c = thumbFor(f, b._i);
+    const c = thumbFor(f, b._i, true);
     if (b.firstChild !== c) b.replaceChild(c, b.firstChild);
   }
   // Draw the off-screen thumbnails a few at a time while nothing else is happening,
@@ -1516,8 +1928,12 @@
     scrollCurrent();
   }
   function scrollCurrent() {
-    const el = $('frameList').querySelector('[aria-current="true"]');
-    if (el) el.scrollIntoView({ block: 'nearest' });
+    const list = $('frameList'), el = list.querySelector('[aria-current="true"]');
+    if (!el) return;
+    if (!ui.scrub) { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); return; }
+    // Scrubbing: keep the current frame centered under the playhead line.
+    if (ui.timeline === 'bottom') list.scrollLeft = el.offsetLeft + el.offsetWidth / 2 - list.clientWidth / 2;
+    else list.scrollTop = el.offsetTop + el.offsetHeight / 2 - list.clientHeight / 2;
   }
   function markCurrent() {
     $('frameList').querySelectorAll('.fr').forEach(b => {
@@ -1561,6 +1977,64 @@
     e.preventDefault(); b.classList.remove('drop');
     moveFrame(parseInt(e.dataTransfer.getData('text/plain'), 10), +b.dataset.i);
   });
+  // ----- timeline position and scrubbing -----
+  // With scrubbing on, the frame under the playhead line becomes the current frame as the list
+  // scrolls, so swiping fast or slow plays the animation at the speed of your hand.
+  function layoutTimeline() {
+    document.body.classList.toggle('tl-bottom', ui.timeline === 'bottom');
+    fl.classList.toggle('scrub', ui.scrub);
+    $('playhead').hidden = !ui.scrub;
+    sizeTimeline();
+  }
+  function sizeTimeline() {
+    const half = ui.timeline === 'bottom' ? fl.clientWidth / 2 : fl.clientHeight / 2;
+    fl.style.setProperty('--half', Math.round(half) + 'px');
+    scrollCurrent();
+  }
+  function frameAtCenter() {
+    const kids = fl.children, n = kids.length;
+    if (!n) return -1;
+    const bottom = ui.timeline === 'bottom';
+    const pos = bottom ? fl.scrollLeft + fl.clientWidth / 2 : fl.scrollTop + fl.clientHeight / 2;
+    const at = b => bottom ? b.offsetLeft : b.offsetTop;
+    const stride = n > 1 ? at(kids[1]) - at(kids[0]) : 1e9;
+    return clamp(Math.floor((pos - at(kids[0])) / (stride || 1e9)), 0, n - 1);
+  }
+  let scrubLog = [], scrubT = 0, scrubSync = 0;
+  function scrubTo(i) {
+    if (ui.playing || ui.preparing) stopPlay();
+    cancelAction(); clearSel();
+    const prev = doc.frames[ui.cur], d = i - ui.cur;
+    if (prev && frameBtns.get(prev.id)) frameBtns.get(prev.id).removeAttribute('aria-current');
+    ui.cur = i;
+    frameBtns.get(doc.frames[i].id).setAttribute('aria-current', 'true');
+    requestRender(); persistSoon(); prefetch(d >= 0 ? 1 : -1);
+    if (!scrubSync) scrubSync = requestAnimationFrame(() => { scrubSync = 0; syncControls(); });
+    // Show how fast the hand is moving, in drawings per second.
+    const now = performance.now();
+    scrubLog.push({ t: now, n: Math.abs(d) });
+    scrubLog = scrubLog.filter(e => now - e.t < 500);
+    const tag = $('playtag');
+    if (scrubLog.length > 1) {
+      const span = (now - scrubLog[0].t) / 1000, moved = scrubLog.slice(1).reduce((a, e) => a + e.n, 0);
+      tag.textContent = `Frame ${i + 1} of ${doc.frames.length}, ${Math.round(moved / span)} fps`;
+    } else tag.textContent = `Frame ${i + 1} of ${doc.frames.length}`;
+    tag.hidden = false;
+    clearTimeout(scrubT);
+    scrubT = setTimeout(() => { if (!ui.playing && !ui.preparing) tag.hidden = true; scrubLog = []; }, 800);
+  }
+  fl.addEventListener('scroll', () => {
+    if (!ui.scrub) return;
+    const i = frameAtCenter();
+    if (i >= 0 && i !== ui.cur) scrubTo(i);
+  }, { passive: true });
+  // A mouse wheel only scrolls up and down, so turn that sideways when the timeline is at the bottom.
+  fl.addEventListener('wheel', e => {
+    if (ui.timeline !== 'bottom' || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault(); fl.scrollLeft += e.deltaY;
+  }, { passive: false });
+  new ResizeObserver(sizeTimeline).observe(fl);
+
   function moveFrame(from, to) {
     if (isNaN(from) || from === to || from < 0 || to < 0 || from >= doc.frames.length || to >= doc.frames.length) return;
     const loopFrame = doc.frames[doc.loopStart];
@@ -1573,7 +2047,7 @@
     stopPlay(); clearSel();
     const frames = doc.frames.slice(); frames.splice(ui.cur + 1, 0, newFrame());
     const ls = doc.loopStart > ui.cur ? doc.loopStart + 1 : doc.loopStart;
-    ui.cur++;
+    ui.cur++; trackOnce('frame_added', { how: 'new' });
     commit(Object.assign({}, doc, { frames, loopStart: ls }));
   };
   $('fDup').onclick = () => {
@@ -1581,7 +2055,7 @@
     const src = doc.frames[ui.cur], frames = doc.frames.slice();
     frames.splice(ui.cur + 1, 0, newFrame(Object.assign({}, src.cels), src.hold));
     const ls = doc.loopStart > ui.cur ? doc.loopStart + 1 : doc.loopStart;
-    ui.cur++;
+    ui.cur++; trackOnce('frame_added', { how: 'duplicate' });
     commit(Object.assign({}, doc, { frames, loopStart: ls }));
   };
   $('fDel').onclick = () => {
@@ -1614,6 +2088,7 @@
     } else {
       const frames = doc.frames.slice();
       frames.splice(next, 0, newFrame({ [ui.layer]: st }));
+      trackOnce('frame_added', { how: 'copy_layer' });
       const ls = doc.loopStart > ui.cur ? doc.loopStart + 1 : doc.loopStart;
       ui.cur = next; commit(Object.assign({}, doc, { frames, loopStart: ls }));
       toast('New frame with a copy of this layer.');
@@ -1654,7 +2129,9 @@
     $('lUp').disabled = idx >= doc.layers.length - 1;
     $('lDown').disabled = idx <= 0;
     $('lDel').disabled = doc.layers.length < 2;
-    $('lOpacity').value = layerOf(ui.layer).opacity;
+    const L = layerOf(ui.layer);
+    $('lOpacity').value = L.opacity;
+    $('lBoil').value = L.boil || 0; $('lBoilV').textContent = L.boil || 0; $('lBoilEvery').value = L.boilEvery || 2;
   }
   $('lAdd').onclick = () => {
     const idx = doc.layers.findIndex(l => l.id === ui.layer);
@@ -1681,6 +2158,27 @@
   $('lDown').onclick = () => moveLayer(-1);
   $('lOpacity').oninput = e => { layerOf(ui.layer).opacity = +e.target.value; renderStage(); };
   $('lOpacity').onchange = () => { renderFrames(); persistSoon(); };
+  // While the wobble slider moves, the current layer wobbles too, so you can see how much.
+  $('lBoil').oninput = e => { const L = layerOf(ui.layer); L.boil = +e.target.value; $('lBoilV').textContent = L.boil; ui.boilPreview = true; renderStage(); };
+  $('lBoil').onchange = () => { ui.boilPreview = false; compLRU.clear(); renderStage(); renderFrames(); persistSoon(); };
+  $('lBoilEvery').onchange = e => { layerOf(ui.layer).boilEvery = +e.target.value; renderStage(); renderFrames(); persistSoon(); };
+  $('imgBtn').onclick = () => $('imgFile').click();
+  $('imgFile').onchange = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) importImage(f); };
+  $('imgEvery').onclick = () => placeImage(true);
+  $('imgOne').onclick = () => placeImage(false);
+  $('imgCancel').onclick = () => { pendingImg = null; $('imgDlg').close(); };
+  $('imgDlg').addEventListener('close', () => { pendingImg = null; });
+  const stageBox = $('stageBox');
+  stageBox.addEventListener('dragover', e => { if (e.dataTransfer && [...e.dataTransfer.items].some(i => i.kind === 'file')) e.preventDefault(); });
+  stageBox.addEventListener('drop', e => {
+    const f = e.dataTransfer && [...e.dataTransfer.files].find(x => x.type.startsWith('image/'));
+    if (f) { e.preventDefault(); importImage(f); }
+  });
+  document.addEventListener('paste', e => {
+    if (document.querySelector('dialog[open]') || (e.target.closest && e.target.closest('input, textarea'))) return;
+    const f = e.clipboardData && [...e.clipboardData.files].find(x => x.type.startsWith('image/'));
+    if (f) { e.preventDefault(); importImage(f); }
+  });
 
   // ================= controls sync =================
   function syncControls() {
@@ -1692,6 +2190,9 @@
     $('smoothWrap').hidden = ui.tool !== 'brush';
     $('cleanWrap').hidden = ui.tool !== 'brush';
     $('eraseWrap').hidden = ui.tool !== 'erase';
+    $('sizeWrap').hidden = ui.tool === 'fill';
+    $('gapWrap').hidden = $('fromWrap').hidden = ui.tool !== 'fill';
+    $('fillGap').value = ui.fillGap; $('fillFrom').value = ui.fillFrom;
     $('eraseWhole').checked = ui.eraseWhole;
     $('color').value = ui.color;
     $('undo').disabled = !undoS.length; $('redo').disabled = !redoS.length;
@@ -1702,6 +2203,7 @@
     $('oBefore').value = doc.onion.before; $('oAfter').value = doc.onion.after; $('oOpacity').value = doc.onion.opacity;
     $('introFps').value = doc.introFps; $('introFpsV').textContent = doc.introFps;
     $('loopFps').value = doc.loopFps; $('loopFpsV').textContent = doc.loopFps;
+    $('tlPos').value = ui.timeline; $('tlScrub').checked = ui.scrub;
     $('holdV').textContent = doc.frames[ui.cur].hold;
     $('loopHere').textContent = doc.loopStart === ui.cur && ui.cur > 0 ? 'Loop from the start' : 'Loop from here';
     $('fDel').disabled = doc.frames.length < 2;
@@ -1732,7 +2234,7 @@
     ui.recent.forEach(c => {
       const b = document.createElement('button');
       b.type = 'button'; b.style.background = c; b.setAttribute('aria-label', 'Use color ' + c);
-      b.onclick = () => { ui.color = c; if (ui.tool !== 'brush') ui.tool = 'brush'; syncControls(); persistSoon(); };
+      b.onclick = () => { ui.color = c; if (ui.tool !== 'brush' && ui.tool !== 'fill') ui.tool = 'brush'; syncControls(); persistSoon(); };
       frag.append(b);
     });
     box.replaceChildren(frag);
@@ -1752,6 +2254,8 @@
   $('smooth').oninput = e => { ui.smooth = +e.target.value; persistSoon(); };
   $('cleanup').value = ui.cleanup;
   $('cleanup').oninput = e => { ui.cleanup = +e.target.value; persistSoon(); };
+  $('fillGap').onchange = e => { ui.fillGap = +e.target.value; persistSoon(); };
+  $('fillFrom').onchange = e => { ui.fillFrom = e.target.value; persistSoon(); };
   $('eraseWhole').onchange = e => { ui.eraseWhole = e.target.checked; persistSoon(); };
   $('color').oninput = e => { ui.color = e.target.value; persistSoon(); };
   $('undo').onclick = undo; $('redo').onclick = redo;
@@ -1764,6 +2268,8 @@
   $('oOpacity').oninput = e => { doc.onion.opacity = +e.target.value; renderStage(); persistSoon(); };
   $('introFps').oninput = e => { doc.introFps = +e.target.value; $('introFpsV').textContent = e.target.value; persistSoon(); };
   $('loopFps').oninput = e => { doc.loopFps = +e.target.value; $('loopFpsV').textContent = e.target.value; persistSoon(); };
+  $('tlPos').onchange = e => { ui.timeline = e.target.value; layoutTimeline(); requestAnimationFrame(fit); persistSoon(); };
+  $('tlScrub').onchange = e => { ui.scrub = e.target.checked; layoutTimeline(); persistSoon(); };
   $('bgColor').oninput = e => { doc.bg.color = e.target.value; renderStage(); };
   $('bgColor').onchange = () => { renderFrames(); persistSoon(); };
   $('bgTransparent').onchange = e => { doc.bg.transparent = e.target.checked; renderStage(); renderFrames(); persistSoon(); };
@@ -1841,6 +2347,9 @@
     $('selbar').hidden = !show;
     ['sCopy', 'sCut', 'sCenter', 'sFlip', 'sDel', 'sDone'].forEach(id => $(id).disabled = !sel);
     $('sPaste').disabled = !clip;
+    const st = sel ? cel(ui.cur, ui.layer) : EMPTY, pic = sel ? [...sel.idx].map(i => st[i]).find(x => x && x.img && !x.fill) : null;
+    $('sFilter').hidden = !pic;
+    if (pic) $('sFilter').value = pic.filter || '';
   }
   function pip(x, y, poly) {
     let ins = false;
@@ -1934,6 +2443,25 @@
   $('gSnap').onchange = e => gridSet('snap', e.target.checked);
   $('sCopy').onclick = copySel; $('sCut').onclick = cutSel; $('sPaste').onclick = paste;
   $('sFlip').onclick = flipSel; $('sDel').onclick = deleteSel;
+  // A filter belongs to the picture, so it changes that picture on every frame and layer.
+  $('sFilter').onchange = e => {
+    if (!sel) return;
+    const st = cel(ui.cur, ui.layer), ids = new Set([...sel.idx].map(i => st[i]).filter(x => x && x.img && !x.fill).map(x => x.img));
+    if (!ids.size) return;
+    const f = e.target.value, idx = sel.idx, map = new Map();
+    const tx = arr => {
+      if (!arr.some(x => x.img && ids.has(x.img))) return arr;
+      let m = map.get(arr);
+      if (!m) { m = arr.map(x => x.img && ids.has(x.img) ? Object.assign({}, x, { filter: f }) : x); map.set(arr, m); }
+      return m;
+    };
+    const frames = doc.frames.map(fr => {
+      const cels = {}; let changed = false;
+      for (const id in fr.cels) { cels[id] = tx(fr.cels[id]); if (cels[id] !== fr.cels[id]) changed = true; }
+      return changed ? Object.assign({}, fr, { r: uid(), cels }) : fr;
+    });
+    commit(Object.assign({}, doc, { frames })); makeSel(idx); renderStage();
+  };
   $('sDone').onclick = () => { clearSel(); renderStage(); };
 
   // ================= input =================
@@ -2068,6 +2596,9 @@
       live.strokes = cel(ui.cur, ui.layer).slice(); live.erased = false;
       action = { kind: 'erase', pid: e.pointerId, last: p };
       eraseSeg(p, p); renderStage();
+    } else if (ui.tool === 'fill') {
+      // Fills on lift, so a second finger landing for a pinch can still cancel it.
+      action = { kind: 'fill', pid: e.pointerId, p };
     } else if (ui.tool === 'lasso') {
       if (sel && sel.fi === ui.cur && sel.lid === ui.layer) {
         const h = hitHandle(p);
@@ -2097,6 +2628,12 @@
     let changed = false;
     const minx = Math.min(a[0], b[0]) - r, maxx = Math.max(a[0], b[0]) + r, miny = Math.min(a[1], b[1]) - r, maxy = Math.max(a[1], b[1]) + r;
     for (const s of live.strokes) {
+      // Pictures and fills aren't cut up. "Whole strokes" removes one you rub over.
+      if (s.img) {
+        const hit = ui.eraseWhole && picHit(s, b[0], b[1], r);
+        if (hit) changed = true; else out.push(s);
+        continue;
+      }
       const pad = s.size / 2;
       let hit = false;
       for (const q of s.pts) {
@@ -2137,6 +2674,8 @@
     } else if (action.kind === 'erase') {
       for (const ev of list) { const p = toDoc(ev); eraseSeg(action.last, p); action.last = p; }
       requestRender();
+    } else if (action.kind === 'fill') {
+      return;
     } else if (action.kind === 'lasso') {
       const p = toDoc(e), l = live.lasso[live.lasso.length - 1];
       if (Math.hypot(p[0] - l[0], p[1] - l[1]) > 2 / ui.view.s) live.lasso.push(p);
@@ -2219,6 +2758,7 @@
 
   function endTool() {
     if (!action) return;
+    if (action.kind === 'fill') { floodFill(action.p); return; }
     if (action.kind === 'draw' && live.stroke) {
       const s = live.stroke;
       if (action.raw) {
@@ -2232,6 +2772,7 @@
         for (let i = 0; i < tail; i++) p[n - 1 - i][2] *= 0.35 + 0.65 * (i / tail);
       }
       live.stroke = null;
+      trackOnce('first_stroke', { brush: s.brush });
       addRecent(s.color);
       commit(withCel(ui.cur, ui.layer, cel(ui.cur, ui.layer).concat([s])));
     } else if (action.kind === 'erase') {
@@ -2241,8 +2782,18 @@
     } else if (action.kind === 'lasso') {
       const poly = live.lasso; live.lasso = null;
       const idx = new Set();
-      if (poly && poly.length > 2) {
-        cel(ui.cur, ui.layer).forEach((s, i) => {
+      const st0 = cel(ui.cur, ui.layer);
+      let bw = 0, bh = 0;
+      if (poly) { const xs = poly.map(q => q[0]), ys = poly.map(q => q[1]); bw = Math.max(...xs) - Math.min(...xs); bh = Math.max(...ys) - Math.min(...ys); }
+      if (poly && bw < 8 / ui.view.s && bh < 8 / ui.view.s) {
+        // A tap selects the picture or fill under it.
+        const q = poly[0];
+        for (let i = st0.length - 1; i >= 0; i--) {
+          if (st0[i].img && picHit(st0[i], q[0], q[1], 0)) { idx.add(i); break; }
+        }
+      } else if (poly && poly.length > 2) {
+        st0.forEach((s, i) => {
+          if (s.img) { const p = s.pts; if (pip((p[0][0] + p[1][0]) / 2, (p[0][1] + p[1][1]) / 2, poly)) idx.add(i); return; }
           const step = Math.max(1, Math.floor(s.pts.length / 24));
           let n = 0, inside = 0;
           for (let j = 0; j < s.pts.length; j += step) { n++; if (pip(s.pts[j][0], s.pts[j][1], poly)) inside++; }
@@ -2270,7 +2821,7 @@
     if (mod && k === 'y') { e.preventDefault(); redo(); return; }
     if (mod && k === 'c') { e.preventDefault(); copySel(); return; }
     if (mod && k === 'x') { e.preventDefault(); cutSel(); return; }
-    if (mod && k === 'v') { e.preventDefault(); paste(); return; }
+    if (mod && k === 'v') { if (clip) { e.preventDefault(); paste(); } return; }
     if (mod && k === 'a') { e.preventDefault(); selectAll(); return; }
     if (mod) return;
     if (e.key === ' ') { e.preventDefault(); if (!spaceDown) { spaceDown = true; cv.style.cursor = cursorFor(); } return; }
@@ -2280,6 +2831,7 @@
       case 'b': case 'B': setTool('brush'); break;
       case 'e': case 'E': setTool('erase'); break;
       case 'l': case 'L': setTool('lasso'); break;
+      case 'f': case 'F': setTool('fill'); break;
       case 'h': case 'H': setTool('hand'); break;
       case '[': ui.sizes[sk] = clamp(ui.sizes[sk] / 1.15, 1, 200); syncControls(); renderStage(); persistSoon(); break;
       case ']': ui.sizes[sk] = clamp(ui.sizes[sk] * 1.15, 1, 200); syncControls(); renderStage(); persistSoon(); break;
@@ -2362,7 +2914,20 @@
     const t = $('toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200);
   }
+  // Usage events for config.js (Umami). Only counts and labels like the export format,
+  // never anything about the drawing itself. Does nothing when analytics is off.
+  function track(name, data) { try { if (window.moceanTrack) window.moceanTrack(name, data); } catch (e) {} }
+  const tracked = new Set();
+  function trackOnce(name, data) { if (!tracked.has(name)) { tracked.add(name); track(name, data); } }
+  const exportKind = f => /-sprite\.png$/.test(f) ? 'sprite' : /-player\.html$/.test(f) ? 'html_player'
+    : /-frames\.zip$/.test(f) ? 'png_sequence' : /\.(mp4|webm)$/.test(f) ? 'video' : /\.json$/.test(f) ? 'project_file' : 'other';
+
   async function saveFile(filename, data) {
+    const ok = await saveFileRaw(filename, data);
+    if (ok === true) track('export', { format: exportKind(filename), frames: doc.frames.length });
+    return ok;
+  }
+  async function saveFileRaw(filename, data) {
     const ext = (filename.split('.').pop() || '').toLowerCase();
     const type = { json: 'application/json', html: 'text/html', png: 'image/png', zip: 'application/zip', mp4: 'video/mp4', webm: 'video/webm' }[ext] || '';
     const blob = data instanceof Blob && data.type ? data : new Blob([data], { type });
@@ -2410,7 +2975,7 @@
       const t = mk(w, h), tx = t.getContext('2d');
       tx.scale(scale, scale);
       for (const s of st) drawStroke(tx, s);
-      x.globalAlpha = L.opacity; x.drawImage(t, 0, 0); x.globalAlpha = 1;
+      x.globalAlpha = L.opacity; x.save(); x.scale(scale, scale); drawBoiled(x, t, L, fi); x.restore(); x.globalAlpha = 1;
     }
     return c;
   }
@@ -2588,7 +3153,8 @@
 
   $('saveProj').onclick = async () => {
     if (media && media.kind === 'video') toast('Background videos stay on this device but are not included in the .json file.');
-    if (await saveFile(`${slug()}.json`, docJson(doc, { bgImage: bgData || null })) && project) {
+    const pics = project ? await assetsJson(project.id, doc) : {};
+    if (await saveFile(`${slug()}.json`, docJson(doc, { bgImage: bgData || null, assets: pics })) && project) {
       project.exported = Date.now(); saveNow();
     }
   };
@@ -2602,7 +3168,7 @@
       const name = f.name.replace(/\.json$/i, '').replace(/[-_]+/g, ' ').slice(0, 60) || 'Imported';
       if ($('exportDlg').open) $('exportDlg').close();
       if ($('projectsDlg').open) $('projectsDlg').close();
-      await createProject(nd, name, d.bgImage ? { kind: 'data', data: d.bgImage } : null);
+      await createProject(nd, name, d.bgImage ? { kind: 'data', data: d.bgImage } : null, assetEntries(d.assets));
       toast(`Imported "${name}" as a new project.`);
     } catch (err) { toast('That file is not a Mocean project.'); }
   };
@@ -2629,9 +3195,27 @@
   // ================= boot =================
   new ResizeObserver(resizeCanvas).observe($('stageBox'));
   clampUi();
+  if (ui.timeline !== 'bottom') ui.timeline = 'left';
+  ui.scrub = ui.scrub !== false;
+  layoutTimeline();
   syncControls(); renderFrames(); renderLayers();
   resizeCanvas();
   bootStorage().then(maybeWelcome, maybeWelcome);
+  // How long the editor is actually on screen. Sent as a rough bucket each time the page is
+  // hidden, but only when the bucket changes, so switching tabs back and forth doesn't spam it.
+  {
+    const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    track('app_open', { installed });
+    let shownAt = document.hidden ? 0 : Date.now(), activeMs = 0, sentBucket = '';
+    const bucket = m => m < 1 ? 'under_1m' : m < 5 ? '1-5m' : m < 20 ? '5-20m' : m < 60 ? '20-60m' : 'over_1h';
+    const onHide = () => {
+      if (shownAt) { activeMs += Date.now() - shownAt; shownAt = 0; }
+      const b = bucket(activeMs / 60000);
+      if (b !== sentBucket) { sentBucket = b; track('session_length', { length: b, drew: tracked.has('first_stroke'), installed }); }
+    };
+    document.addEventListener('visibilitychange', () => { if (document.hidden) onHide(); else shownAt = Date.now(); });
+    addEventListener('pagehide', onHide);
+  }
   // ================= updates =================
   // When a new version has installed and is waiting, offer a Reload button. Nothing reloads
   // on its own: the new version only takes over after a tap, and only once any stroke in
