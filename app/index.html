@@ -568,6 +568,7 @@
     <kbd>Cmd/Ctrl + C X V</kbd><span>Copy, cut, paste (the selection, or the whole layer)</span>
     <kbd>Cmd/Ctrl + A</kbd><span>Select everything on the layer</span>
     <kbd>Delete</kbd><span>Delete the selection</span>
+    <kbd>Draw, then hold</kbd><span>Turns the stroke into a straight line. Keep moving to aim it, then lift.</span>
     <kbd>Two fingers</kbd><span>Pinch to zoom and pan. Tap to undo, three-finger tap to redo.</span>
     <kbd>Apple Pencil</kbd><span>Once used, one finger pans instead of drawing.</span>
   </div>
@@ -2466,12 +2467,13 @@
 
   // ================= input =================
   const touches = new Map();
-  let penSeen = false, spaceDown = false, gesture = null, tap = null, sm = null, lazy = null, smP = 0.6;
+  let penSeen = false, spaceDown = false, gesture = null, tap = null, sm = null, lazy = null, smP = 0.6, holdT = 0, holdAt = null;
   const pressureOf = e => (e.pointerType === 'pen' && e.pressure > 0 ? e.pressure : 0.6);
   function local(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
   function toDoc(e) { const l = local(e); return [(l[0] - ui.view.x) / ui.view.s, (l[1] - ui.view.y) / ui.view.s]; }
 
   function cancelAction() {
+    clearTimeout(holdT);
     live.stroke = null; live.strokes = null; live.lasso = null; live.xf = null; live.erased = false; live.guides = null;
     action = null;
   }
@@ -2590,6 +2592,7 @@
       sm = p; lazy = p; smP = pressureOf(e);
       live.stroke = { brush: ui.brush, color: ui.color, size: ui.sizes.brush, pts: [[p[0], p[1], smP]] };
       action = { kind: 'draw', pid: e.pointerId };
+      holdArm(p);
       renderStage();
     } else if (ui.tool === 'erase') {
       if (lockedCheck()) return;
@@ -2653,6 +2656,30 @@
     if (changed) { live.strokes = out; live.erased = true; }
   }
 
+  // Hold to straighten: pause mid-stroke and it turns into a straight line from where it
+  // started. Keep moving before lifting to aim the end.
+  function holdArm(p) {
+    clearTimeout(holdT); holdAt = p;
+    const a = action;
+    holdT = setTimeout(() => {
+      if (action !== a || !live.stroke || a.straight) return;
+      const s0 = live.stroke.pts[0], end = a.raw || holdAt;
+      if (Math.hypot(end[0] - s0[0], end[1] - s0[1]) < 14 / ui.view.s) return;
+      const pr = live.stroke.pts.reduce((t, q) => t + q[2], 0) / live.stroke.pts.length;
+      a.straight = { a: s0, pr };
+      straightTo(end);
+      try { navigator.vibrate && navigator.vibrate(8); } catch (err) {}
+      requestRender();
+    }, 550);
+  }
+  function straightTo(b) {
+    const { a, pr } = action.straight;
+    const n = Math.max(2, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 2));
+    const pts = [];
+    for (let i = 0; i <= n; i++) pts.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n, pr]);
+    live.stroke.pts = pts;
+  }
+
   function moveTool(e) {
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     const list = evs.length ? evs : [e];
@@ -2660,9 +2687,11 @@
       // Lazy rope (like Procreate's StreamLine): the brush only follows once the pen
       // pulls the rope tight, which swallows hand tremor. A light average rounds off the rest.
       const rope = ui.smooth * 24 / ui.view.s, k = ui.smooth * 0.6, minD = 0.6 / ui.view.s;
+      if (action.straight) { action.raw = toDoc(e); straightTo(action.raw); requestRender(); return; }
       for (const ev of list) {
         const p = toDoc(ev);
         action.raw = p;
+        if (Math.hypot(p[0] - holdAt[0], p[1] - holdAt[1]) > 5 / ui.view.s) holdArm(p);
         const dx = p[0] - lazy[0], dy = p[1] - lazy[1], d = Math.hypot(dx, dy);
         if (d > rope) { const m = (d - rope) / d; lazy = [lazy[0] + dx * m, lazy[1] + dy * m]; }
         sm = [sm[0] + (lazy[0] - sm[0]) * (1 - k), sm[1] + (lazy[1] - sm[1]) * (1 - k)];
@@ -2759,7 +2788,13 @@
   function endTool() {
     if (!action) return;
     if (action.kind === 'fill') { floodFill(action.p); return; }
-    if (action.kind === 'draw' && live.stroke) {
+    clearTimeout(holdT);
+    if (action.kind === 'draw' && live.stroke && action.straight) {
+      const s = live.stroke; live.stroke = null;
+      trackOnce('first_stroke', { brush: s.brush });
+      addRecent(s.color);
+      commit(withCel(ui.cur, ui.layer, cel(ui.cur, ui.layer).concat([s])));
+    } else if (action.kind === 'draw' && live.stroke) {
       const s = live.stroke;
       if (action.raw) {
         const l = s.pts[s.pts.length - 1];

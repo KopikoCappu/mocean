@@ -1,6 +1,6 @@
 /* Mocean service worker: makes the app installable and usable offline.
    Bump VERSION whenever you deploy changes so everyone gets the update. */
-const VERSION = 'mocean-v20';
+const VERSION = 'mocean-v21';
 // The editor needs these to work offline. OPTIONAL pages are cached too when they exist,
 // so a copy of Mocean without the landing or privacy page still installs.
 const SHELL = ['/app/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png'];
